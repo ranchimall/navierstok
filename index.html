@@ -107,7 +107,7 @@
                         <div class="swap-box-header">
                             <div class="swap-title-wrap">
                                 <span class="swap-title-text">Instant Buy</span>
-                                <span class="swap-badge-live">Live PumpSwap</span>
+                                <span class="swap-badge-live">RanchiMall Official Solana Wallet</span>
                             </div>
                             <div class="swap-rate-badge" id="swap_rate_display" title="Live conversion rate">
                                 1 SOL ≈ ... $NAVIERSTOK
@@ -204,7 +204,7 @@
             <div class="buy-header">
                 <div class="buy-title-row">
                     <div class="buy-title">
-                        Buy $NAVIERSTOK
+                        Other $NAVIERSTOK Markets
                     </div>
                     <span class="badge-tag" style="margin: 0; padding: 0.15rem 0.55rem; font-size: 0.68rem;">
                         9 Verified Platforms
@@ -214,17 +214,7 @@
             </div>
 
             <div class="buy-grid">
-                <!-- 1. RanchiMall Solana Wallet -->
-                <a href="https://ranchimall.github.io/solanawallet/#/buy" target="_blank" rel="noopener" class="buy-card interact" title="Buy on RanchiMall Solana Wallet">
-                    <div class="buy-card-left">
-                        <span class="buy-dot"></span>
-                        <div class="buy-info">
-                            <span class="buy-name">RanchiMall Wallet</span>
-                            <span class="buy-pair-badge">RanchiMall Official Solana Wallet</span>
-                        </div>
-                    </div>
-                </a>
-
+                
                 <!-- 2. Jupiter DEX -->
                 <a href="https://jup.ag/swap?sell=XsafvsGtzFqqHgTnA3aPC83EAMkacU5mcGtcSayhpVV&buy=4svsyTi5yRpVUUHFcKqDozCuEdhhP3H1VPy4xuTQpump" target="_blank" rel="noopener" class="buy-card interact" title="Swap on Jupiter (TSMx pair)">
                     <div class="buy-card-left">
@@ -568,6 +558,39 @@
             } else {
                 receiveDisplay.textContent = Math.floor(estimatedTokens).toLocaleString();
             }
+
+            updateActiveChipHighlight(spendInput.value);
+        }
+
+        // Helper to update active chip highlight based on input value
+        function updateActiveChipHighlight(currentVal) {
+            const valNum = parseFloat(currentVal);
+            const chips = document.querySelectorAll('.quick-chip');
+            chips.forEach(chip => {
+                const chipVal = parseFloat(chip.textContent);
+                if (!isNaN(valNum) && !isNaN(chipVal) && valNum === chipVal) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+        }
+
+        // Render quick preset amount chips
+        function syncQuickChips(curr, currentVal) {
+            const chipsContainer = document.getElementById('quick_amount_chips');
+            if (!chipsContainer) return;
+
+            const valNum = parseFloat(currentVal);
+            const options = curr === 'SOL' 
+                ? [0.1, 0.5, 1.0, 5.0] 
+                : [0.01, 0.1, 1.0, 5.0];
+
+            chipsContainer.innerHTML = options.map(opt => {
+                const isActive = (!isNaN(valNum) && valNum === opt);
+                const optStr = (opt === 0.01) ? '0.01' : (opt === 0.1 ? '0.1' : (opt === 0.5 ? '0.5' : opt.toFixed(1)));
+                return `<button type="button" class="quick-chip ${isActive ? 'active' : ''}" onclick="setQuickAmount(${opt})">${optStr} ${curr}</button>`;
+            }).join('');
         }
 
         // Switch spend currency (SOL / TSMx)
@@ -575,44 +598,28 @@
             priceState.currentSpendCurrency = curr;
             const btnSol = document.getElementById('btn_spend_sol');
             const btnTsmx = document.getElementById('btn_spend_tsmx');
-            const chipsContainer = document.getElementById('quick_amount_chips');
+            const spendInput = document.getElementById('spend_amount_input');
+            const currentVal = spendInput ? spendInput.value : '1';
 
             if (curr === 'SOL') {
                 btnSol.classList.add('active');
                 btnTsmx.classList.remove('active');
-                chipsContainer.innerHTML = `
-                    <button type="button" class="quick-chip" onclick="setQuickAmount(0.1)">0.1 SOL</button>
-                    <button type="button" class="quick-chip" onclick="setQuickAmount(0.5)">0.5 SOL</button>
-                    <button type="button" class="quick-chip active" onclick="setQuickAmount(1)">1.0 SOL</button>
-                    <button type="button" class="quick-chip" onclick="setQuickAmount(5)">5.0 SOL</button>
-                `;
             } else {
                 btnTsmx.classList.add('active');
                 btnSol.classList.remove('active');
-                chipsContainer.innerHTML = `
-                    <button type="button" class="quick-chip" onclick="setQuickAmount(0.01)">0.01 TSMx</button>
-                    <button type="button" class="quick-chip" onclick="setQuickAmount(0.1)">0.1 TSMx</button>
-                    <button type="button" class="quick-chip active" onclick="setQuickAmount(1)">1.0 TSMx</button>
-                    <button type="button" class="quick-chip" onclick="setQuickAmount(5)">5.0 TSMx</button>
-                `;
             }
+
+            syncQuickChips(curr, currentVal);
             updateCalculations();
         }
 
         // Quick amount button click
         function setQuickAmount(val) {
             const spendInput = document.getElementById('spend_amount_input');
-            spendInput.value = val;
-
-            const chips = document.querySelectorAll('.quick-chip');
-            chips.forEach(chip => {
-                if (chip.textContent.startsWith(String(val))) {
-                    chip.classList.add('active');
-                } else {
-                    chip.classList.remove('active');
-                }
-            });
-
+            if (spendInput) {
+                spendInput.value = val;
+            }
+            updateActiveChipHighlight(val);
             updateCalculations();
         }
 
