@@ -1019,7 +1019,8 @@ sm-button {
 
 .contract-actions {
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.15rem;
   margin-top: 0.15rem;
   min-width: 0;
 }
