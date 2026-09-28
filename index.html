@@ -213,7 +213,35 @@
                 <p class="buy-subtitle">Select your preferred exchange, Web3 wallet, or trading terminal to swap Navier Stokes tokens:</p>
             </div>
 
+            <!-- PumpSwap Guide Tip -->
+            <div class="pumpswap-guide-note">
+                <div class="guide-note-content">
+                    <svg class="guide-note-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span><strong>PumpSwap AMM Note:</strong> NAVIERSTOK is paired with <strong>TSMx</strong>. On PumpSwap, replace SOL in the Sell field by pasting the TSMx token contract address:</span>
+                </div>
+                <div class="guide-note-address">
+                    <code class="guide-token-code" title="TSMx Contract Address">XsafvsGtzFqqHgTnA3aPC83EAMkacU5mcGtcSayhpVV</code>
+                    <button type="button" class="guide-copy-btn interact" onclick="copyText('XsafvsGtzFqqHgTnA3aPC83EAMkacU5mcGtcSayhpVV', 'TSMx Contract Address')">
+                        Copy TSMx
+                    </button>
+                </div>
+            </div>
+
             <div class="buy-grid">
+                <!-- 1. PumpSwap (Official AMM) -->
+                <a href="https://swap.pump.fun/?input=So11111111111111111111111111111111111111112&output=4svsyTi5yRpVUUHFcKqDozCuEdhhP3H1VPy4xuTQpump" target="_blank" rel="noopener" class="buy-card interact" title="Swap on PumpSwap (TSMx pair / Official AMM)">
+                    <div class="buy-card-left">
+                        <span class="buy-dot"></span>
+                        <div class="buy-info">
+                            <span class="buy-name">PumpSwap</span>
+                            <span class="buy-pair-badge">TSMx pair (Official AMM)</span>
+                        </div>
+                    </div>
+                </a>
                 
                 <!-- 2. Jupiter DEX -->
                 <a href="https://jup.ag/swap?sell=XsafvsGtzFqqHgTnA3aPC83EAMkacU5mcGtcSayhpVV&buy=4svsyTi5yRpVUUHFcKqDozCuEdhhP3H1VPy4xuTQpump" target="_blank" rel="noopener" class="buy-card interact" title="Swap on Jupiter (TSMx pair)">
