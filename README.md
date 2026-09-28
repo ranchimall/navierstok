@@ -1,32 +1,20 @@
-# NAVIERSTOK ($NVSTK)
+# Navier Stokes ($NAVIERSTOK)
 > **Linking AI with Blockchain through Memes and YouTube**
 
-Official webpage for the **NAVIERSTOK** crypto token, designed adhering strictly to the **[RanchiMall Standard UI](https://github.com/ranchimall/standard-ui)** design guidelines and native Web Components architecture.
+Official webpage for the **Navier Stokes ($NAVIERSTOK)** crypto token on Solana, designed adhering strictly to the **[RanchiMall Standard UI](https://github.com/ranchimall/standard-ui)** design guidelines and native Web Components architecture.
 
 ---
 
 ## 🌟 Overview
 
-**NAVIERSTOK** bridges the mathematical elegance of the Millennium Prize Navier-Stokes fluid dynamics equations with artificial intelligence, decentralized finance liquidity mechanics, viral meme culture, and YouTube creator multimedia education within the RanchiMall ecosystem.
+**Navier Stokes ($NAVIERSTOK)** bridges the mathematical elegance of the Millennium Prize Navier-Stokes fluid dynamics equations with artificial intelligence, decentralized finance liquidity mechanics, viral meme culture, and YouTube creator multimedia education within the RanchiMall ecosystem.
 
----
-
-## 🎨 Standard UI Features Integrated
-
-This webpage uses the native web component architecture and utilities provided by **RanchiMall Standard UI**:
-
-- **Native Web Components**:
-  - `<theme-toggle>`: Seamless dark and light theme switching with automatic system detection and local persistence.
-  - `<sm-button>`: Modern button components supporting primary, outlined, and no-outline variants with ripple animations (`.interact`).
-  - `<sm-input>`: Clean styled text & number inputs.
-  - `<sm-popup>`: Modals for DEX trading options, newsletters, and interactive dialogues (`openPopup()`, `hidePopup()`).
-  - `<sm-notifications>`: Interactive notification drawer triggered via `notify(message, type)` with audio feedback.
-  - `<sm-carousel>`: Responsive touch-and-scroll carousel for memes and creator media showcases.
-- **RanchiMall Color Palette & Typography**:
-  - Accent colors (`#0D7377` light mode, `#32E0C4` dark mode).
-  - Modern typography hierarchy with `Poppins` headings and `Roboto` / `Roboto Mono` body & equations.
-- **`main_UI.js` Utilities**:
-  - `getRef()`, `notify()`, `getConfirmation()`, `openPopup()`, `hidePopup()`.
+- **Token Name**: Navier Stokes
+- **Ticker**: $NAVIERSTOK
+- **Blockchain**: Solana
+- **Token Contract**: `4svsyTi5yRpVUUHFcKqDozCuEdhhP3H1VPy4xuTQpump`
+- **PumpSwap AMM Pool**: `AkyigaXhnBCKWupybbphq5VeUg1H2RNHnbLgj5zoyj7t`
+- **Launch Pair**: TSMx Stock Token (`XsafvsGtzFqqHgTnA3aPC83EAMkacU5mcGtcSayhpVV`)
 
 ---
 
@@ -34,7 +22,10 @@ This webpage uses the native web component architecture and utilities provided b
 
 ```text
 navierstok/
+├── .github/workflows/
+│   └── update-supply.yml       # Periodic Solana RPC token supply updater
 ├── assets/
+│   ├── logo.jpg                # Official Navier Stokes token logo
 │   └── aggregate.svg           # Standard UI SVG icon sprite
 ├── css/
 │   └── main.css                # Standard UI themed layout & component styles
@@ -44,7 +35,9 @@ navierstok/
 ├── notification-sound/
 │   ├── notification.mp3        # Audio feedback for alerts
 │   └── notification.ogg
-├── index.html                  # Main NAVIERSTOK token webpage
+├── circulating.txt             # Circulating token supply
+├── totalcoins.txt              # Total token supply
+├── index.html                  # Main Navier Stokes token webpage
 └── README.md                   # Project documentation
 ```
 
