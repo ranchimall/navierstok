@@ -63,37 +63,138 @@
     <main class="container">
         <!-- Hero Section -->
         <section class="hero">
-            <div class="badge-tag">
-                <span class="badge-pulse"></span>
-                From Pump.fun • Graduated to PumpSwap
-            </div>
-            <h1 class="hero-title">Navier Stokes <span>($NAVIERSTOK)</span></h1>
-            <p class="hero-tagline">Linking AI with Blockchain through Memes and YouTube</p>
+            <div class="hero-grid">
+                <!-- Left Column: Token Info & Stats -->
+                <div class="hero-left">
+                    <div class="badge-tag">
+                        <span class="badge-pulse"></span>
+                        From Pump.fun • Graduated to PumpSwap
+                    </div>
+                    <h1 class="hero-title">Navier Stokes <span>($NAVIERSTOK)</span></h1>
+                    <p class="hero-tagline">Linking AI with Blockchain through Memes and YouTube</p>
 
-            <!-- Verified Metrics Grid -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-label">Total Supply</span>
-                    <span class="stat-value" id="total_supply_val">1,000,000,000</span>
-                    <span class="stat-sub">1 Billion Tokens</span>
+                    <!-- Verified Metrics Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Total Supply</span>
+                            <span class="stat-value" id="total_supply_val">1,000,000,000</span>
+                            <span class="stat-sub">1 Billion Tokens</span>
+                        </div>
+
+                        <div class="stat-card">
+                            <span class="stat-label">Circulating Supply</span>
+                            <span class="stat-value" id="circulating_supply_val">965,246,768.92</span>
+                            <span class="stat-sub">Updated via Solana RPC</span>
+                        </div>
+
+                        <div class="stat-card">
+                            <span class="stat-label">Current AMM Pool</span>
+                            <span class="stat-value" style="font-size: 1.15rem;">PumpSwap</span>
+                            <span class="stat-sub">Graduated Status</span>
+                        </div>
+
+                        <div class="stat-card">
+                            <span class="stat-label">Original Launch Pair</span>
+                            <span class="stat-value" style="font-size: 1.15rem;">TSMx Stock Token</span>
+                            <span class="stat-sub">Pump.fun Genesis</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="stat-card">
-                    <span class="stat-label">Circulating Supply</span>
-                    <span class="stat-value" id="circulating_supply_val">965,246,768.92</span>
-                    <span class="stat-sub">Updated via Solana RPC</span>
-                </div>
+                <!-- Right Column: Interactive Buy $NAVIERSTOK Widget -->
+                <div class="hero-right">
+                    <div class="swap-box">
+                        <div class="swap-box-header">
+                            <div class="swap-title-wrap">
+                                <span class="swap-title-text">Instant Buy</span>
+                                <span class="swap-badge-live">Live PumpSwap</span>
+                            </div>
+                            <div class="swap-rate-badge" id="swap_rate_display" title="Live conversion rate">
+                                1 SOL ≈ ... $NAVIERSTOK
+                            </div>
+                        </div>
 
-                <div class="stat-card">
-                    <span class="stat-label">Current AMM Pool</span>
-                    <span class="stat-value" style="font-size: 1.15rem;">PumpSwap</span>
-                    <span class="stat-sub">Graduated Status</span>
-                </div>
+                        <!-- Spend Input Container -->
+                        <div class="swap-field-container">
+                            <div class="swap-field-top">
+                                <label class="swap-field-label" for="spend_amount_input">You Spend</label>
+                                <span class="swap-fiat-val" id="spend_fiat_val">≈ $0.00 USD</span>
+                            </div>
+                            <div class="swap-field-row">
+                                <input 
+                                    type="number" 
+                                    id="spend_amount_input" 
+                                    class="swap-input" 
+                                    placeholder="0.0" 
+                                    value="1" 
+                                    min="0.000001" 
+                                    step="any"
+                                    autocomplete="off"
+                                    oninput="updateCalculations()"
+                                />
+                                <div class="currency-toggle-group">
+                                    <button type="button" class="currency-toggle-btn active" id="btn_spend_sol" onclick="setSpendCurrency('SOL')">
+                                        <svg class="crypto-icon" viewBox="0 0 32 32">
+                                            <path d="M16 0c8.837 0 16 7.163 16 16s-7.163 16-16 16S0 24.837 0 16 7.163 0 16 0zm8.706 19.517H10.34a.59.59 0 00-.415.17l-2.838 2.815a.291.291 0 00.207.498H21.66a.59.59 0 00.415-.17l2.838-2.816a.291.291 0 00-.207-.497zm-3.046-5.292H7.294l-.068.007a.291.291 0 00-.14.49l2.84 2.816.07.06c.1.07.22.11.344.11h14.366l.068-.007a.291.291 0 00.14-.49l-2.84-2.816-.07-.06a.59.59 0 00-.344-.11zM24.706 9H10.34a.59.59 0 00-.415.17l-2.838 2.816a.291.291 0 00.207.497H21.66a.59.59 0 00.415-.17l2.838-2.815A.291.291 0 0024.706 9z" fill="currentColor"/>
+                                        </svg>
+                                        <span>SOL</span>
+                                    </button>
+                                    <button type="button" class="currency-toggle-btn" id="btn_spend_tsmx" onclick="setSpendCurrency('TSMx')">
+                                        <span class="crypto-badge-text">TSMx</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="quick-amounts-bar" id="quick_amount_chips">
+                                <button type="button" class="quick-chip" onclick="setQuickAmount(0.1)">0.1 SOL</button>
+                                <button type="button" class="quick-chip" onclick="setQuickAmount(0.5)">0.5 SOL</button>
+                                <button type="button" class="quick-chip active" onclick="setQuickAmount(1)">1.0 SOL</button>
+                                <button type="button" class="quick-chip" onclick="setQuickAmount(5)">5.0 SOL</button>
+                            </div>
+                        </div>
 
-                <div class="stat-card">
-                    <span class="stat-label">Original Launch Pair</span>
-                    <span class="stat-value" style="font-size: 1.15rem;">TSMx Stock Token</span>
-                    <span class="stat-sub">Pump.fun Genesis</span>
+                        <!-- Arrow Divider -->
+                        <div class="swap-divider">
+                            <div class="swap-arrow-circle">
+                                <svg viewBox="0 0 24 24" class="icon" style="width: 0.9rem; height: 0.9rem;">
+                                    <path d="M11 4v12.17l-4.59-4.59L5 13l7 7 7-7-1.41-1.41L13 16.17V4h-2z"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Receive Output Container -->
+                        <div class="swap-field-container receive-container">
+                            <div class="swap-field-top">
+                                <label class="swap-field-label">You Receive (Estimated)</label>
+                                <span class="swap-price-usd" id="receive_fiat_val">≈ $0.000110 / token</span>
+                            </div>
+                            <div class="swap-field-row">
+                                <div class="swap-output-val" id="receive_estimate_display">
+                                    <span class="calc-loading-pulse">Calculating...</span>
+                                </div>
+                                <div class="token-receive-badge">
+                                    <img src="assets/logo.jpg" alt="NAVIERSTOK" class="token-mini-avatar" />
+                                    <span class="token-receive-symbol">$NAVIERSTOK</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Slippage & Route Details -->
+                        <div class="swap-details-row">
+                            <span class="swap-detail-item">Slippage: <strong>15%</strong></span>
+                            <span class="swap-detail-item">Route: <strong>PumpSwap AMM</strong></span>
+                        </div>
+
+                        <!-- Buy Action Button -->
+                        <button type="button" id="main_buy_cta_btn" class="swap-submit-btn interact" onclick="executeBuyAction()">
+                            <span>Buy $NAVIERSTOK</span>
+                            <svg class="icon" viewBox="0 0 24 24" style="width: 1.15rem; height: 1.15rem; margin-left: 0.4rem;">
+                                <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42 5.43 5.43H5v2.44z"/>
+                            </svg>
+                        </button>
+                        <div class="swap-footer-hint">
+                            Opens RanchiMall Solana Wallet with pre-filled parameters
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -360,8 +461,181 @@
             }
         }
 
+        // Price and Swap State
+        const priceState = {
+            navierstokPriceInTsmx: 0.0000002404, // Default fallback from PumpSwap AMM
+            tsmxPriceInUsd: 460.52,             // Default fallback from Orca
+            solPriceInUsd: 120.00,              // Default fallback
+            currentSpendCurrency: 'SOL'
+        };
+
+        // Fetch Live Prices from DexScreener & CoinGecko
+        async function fetchLivePrices() {
+            try {
+                // 1. Fetch NAVIERSTOK / TSMx pair on PumpSwap
+                const navierRes = await fetch('https://api.dexscreener.com/latest/dex/tokens/4svsyTi5yRpVUUHFcKqDozCuEdhhP3H1VPy4xuTQpump');
+                if (navierRes.ok) {
+                    const data = await navierRes.json();
+                    if (data.pairs && data.pairs.length > 0) {
+                        const pair = data.pairs[0];
+                        const priceNative = parseFloat(pair.priceNative);
+                        if (!isNaN(priceNative) && priceNative > 0) {
+                            priceState.navierstokPriceInTsmx = priceNative;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('DexScreener NAVIERSTOK price fallback used', err);
+            }
+
+            try {
+                // 2. Fetch TSMx price in USD from DexScreener
+                const tsmxRes = await fetch('https://api.dexscreener.com/latest/dex/tokens/XsafvsGtzFqqHgTnA3aPC83EAMkacU5mcGtcSayhpVV');
+                if (tsmxRes.ok) {
+                    const data = await tsmxRes.json();
+                    if (data.pairs && data.pairs.length > 0) {
+                        const usdcPair = data.pairs.find(p => p.quoteToken && p.quoteToken.symbol === 'USDC') || data.pairs[0];
+                        const priceUsd = parseFloat(usdcPair.priceUsd);
+                        if (!isNaN(priceUsd) && priceUsd > 0) {
+                            priceState.tsmxPriceInUsd = priceUsd;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('DexScreener TSMx price fallback used', err);
+            }
+
+            try {
+                // 3. Fetch SOL price in USD from CoinGecko
+                const solRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+                if (solRes.ok) {
+                    const data = await solRes.json();
+                    if (data.solana && data.solana.usd) {
+                        const solPrice = parseFloat(data.solana.usd);
+                        if (!isNaN(solPrice) && solPrice > 0) {
+                            priceState.solPriceInUsd = solPrice;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('CoinGecko SOL price fallback used', err);
+            }
+
+            updateCalculations();
+        }
+
+        // Live Calculations for Buy Widget
+        function updateCalculations() {
+            const spendInput = document.getElementById('spend_amount_input');
+            if (!spendInput) return;
+
+            const amount = parseFloat(spendInput.value) || 0;
+            const navierstokUsd = priceState.navierstokPriceInTsmx * priceState.tsmxPriceInUsd;
+            
+            let estimatedTokens = 0;
+            let spendFiatUsd = 0;
+
+            if (priceState.currentSpendCurrency === 'SOL') {
+                spendFiatUsd = amount * priceState.solPriceInUsd;
+                if (navierstokUsd > 0) {
+                    estimatedTokens = spendFiatUsd / navierstokUsd;
+                }
+                document.getElementById('spend_fiat_val').textContent = '≈ $' + spendFiatUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD';
+                
+                if (navierstokUsd > 0 && priceState.solPriceInUsd > 0) {
+                    const tokensPerSol = Math.round(priceState.solPriceInUsd / navierstokUsd);
+                    document.getElementById('swap_rate_display').textContent = '1 SOL ≈ ' + tokensPerSol.toLocaleString() + ' $NAVIERSTOK';
+                }
+            } else {
+                // TSMx
+                spendFiatUsd = amount * priceState.tsmxPriceInUsd;
+                if (priceState.navierstokPriceInTsmx > 0) {
+                    estimatedTokens = amount / priceState.navierstokPriceInTsmx;
+                }
+                document.getElementById('spend_fiat_val').textContent = '≈ $' + spendFiatUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD';
+                
+                if (priceState.navierstokPriceInTsmx > 0) {
+                    const tokensPerTsmx = Math.round(1 / priceState.navierstokPriceInTsmx);
+                    document.getElementById('swap_rate_display').textContent = '1 TSMx ≈ ' + tokensPerTsmx.toLocaleString() + ' $NAVIERSTOK';
+                }
+            }
+
+            document.getElementById('receive_fiat_val').textContent = '≈ $' + navierstokUsd.toFixed(6) + ' / token';
+
+            const receiveDisplay = document.getElementById('receive_estimate_display');
+            if (amount <= 0) {
+                receiveDisplay.textContent = '0.00';
+            } else {
+                receiveDisplay.textContent = Math.floor(estimatedTokens).toLocaleString();
+            }
+        }
+
+        // Switch spend currency (SOL / TSMx)
+        function setSpendCurrency(curr) {
+            priceState.currentSpendCurrency = curr;
+            const btnSol = document.getElementById('btn_spend_sol');
+            const btnTsmx = document.getElementById('btn_spend_tsmx');
+            const chipsContainer = document.getElementById('quick_amount_chips');
+
+            if (curr === 'SOL') {
+                btnSol.classList.add('active');
+                btnTsmx.classList.remove('active');
+                chipsContainer.innerHTML = `
+                    <button type="button" class="quick-chip" onclick="setQuickAmount(0.1)">0.1 SOL</button>
+                    <button type="button" class="quick-chip" onclick="setQuickAmount(0.5)">0.5 SOL</button>
+                    <button type="button" class="quick-chip active" onclick="setQuickAmount(1)">1.0 SOL</button>
+                    <button type="button" class="quick-chip" onclick="setQuickAmount(5)">5.0 SOL</button>
+                `;
+            } else {
+                btnTsmx.classList.add('active');
+                btnSol.classList.remove('active');
+                chipsContainer.innerHTML = `
+                    <button type="button" class="quick-chip" onclick="setQuickAmount(0.01)">0.01 TSMx</button>
+                    <button type="button" class="quick-chip" onclick="setQuickAmount(0.1)">0.1 TSMx</button>
+                    <button type="button" class="quick-chip active" onclick="setQuickAmount(1)">1.0 TSMx</button>
+                    <button type="button" class="quick-chip" onclick="setQuickAmount(5)">5.0 TSMx</button>
+                `;
+            }
+            updateCalculations();
+        }
+
+        // Quick amount button click
+        function setQuickAmount(val) {
+            const spendInput = document.getElementById('spend_amount_input');
+            spendInput.value = val;
+
+            const chips = document.querySelectorAll('.quick-chip');
+            chips.forEach(chip => {
+                if (chip.textContent.startsWith(String(val))) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+
+            updateCalculations();
+        }
+
+        // Trigger Buy on RanchiMall Solana Wallet with autofilled mint and amount
+        function executeBuyAction() {
+            const spendInput = document.getElementById('spend_amount_input');
+            const amount = parseFloat(spendInput.value) || 0;
+
+            if (amount <= 0) {
+                notify('Please enter a valid amount to spend', 'error');
+                spendInput.focus();
+                return;
+            }
+
+            const mintAddress = '4svsyTi5yRpVUUHFcKqDozCuEdhhP3H1VPy4xuTQpump';
+            const targetUrl = `https://ranchimall.github.io/solanawallet/#/buy?mint=${mintAddress}&amount=${amount}`;
+
+            window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             fetchSupplyData();
+            fetchLivePrices();
         });
     </script>
 </body>

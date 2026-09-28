@@ -244,6 +244,26 @@ sm-button {
   width: 100%;
 }
 
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 2rem;
+  align-items: start;
+  width: 100%;
+}
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hero-right {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .badge-tag {
   display: inline-flex;
   align-items: center;
@@ -307,9 +327,10 @@ sm-button {
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
   width: 100%;
 }
 
@@ -352,6 +373,327 @@ sm-button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Swap Box (Interactive Buy Widget) */
+.swap-box {
+  background: rgba(var(--surface-color), 1);
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  padding: 1.35rem 1.45rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 194, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.swap-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-color), #00E5FF);
+}
+
+.swap-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.swap-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.swap-title-text {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: rgba(var(--text-color), 1);
+}
+
+.swap-badge-live {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 1rem;
+  background: rgba(0, 194, 255, 0.12);
+  color: var(--accent-color);
+  border: 1px solid rgba(0, 194, 255, 0.25);
+}
+
+.swap-rate-badge {
+  font-size: 0.72rem;
+  font-family: "Roboto Mono", monospace;
+  font-weight: 500;
+  color: var(--text-color-muted);
+  background: var(--card-bg);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-color);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Swap Field Container */
+.swap-field-container {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  padding: 0.8rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.swap-field-container:focus-within {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(0, 194, 255, 0.15);
+}
+
+.swap-field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-color-muted);
+}
+
+.swap-field-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.swap-fiat-val, .swap-price-usd {
+  font-family: "Roboto Mono", monospace;
+  font-weight: 500;
+  color: var(--text-color-muted);
+}
+
+.swap-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.swap-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: "Roboto Mono", monospace;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: rgba(var(--text-color), 1);
+  min-width: 0;
+}
+
+.swap-input::-webkit-outer-spin-button,
+.swap-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.swap-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Currency Toggle Group */
+.currency-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(var(--surface-color), 1);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.2rem;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.currency-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-color-muted);
+  transition: all 0.2s ease;
+}
+
+.currency-toggle-btn.active {
+  background: var(--accent-color);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 194, 255, 0.3);
+}
+
+.crypto-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+}
+
+.crypto-badge-text {
+  letter-spacing: 0.3px;
+}
+
+/* Quick preset amount chips */
+.quick-amounts-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.quick-chip {
+  padding: 0.18rem 0.5rem;
+  border-radius: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: "Roboto Mono", monospace;
+  background: rgba(var(--surface-color), 0.7);
+  border: 1px solid var(--border-color);
+  color: var(--text-color-muted);
+  transition: all 0.15s ease;
+}
+
+.quick-chip:hover, .quick-chip.active {
+  background: rgba(0, 194, 255, 0.12);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+/* Divider Arrow */
+.swap-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -0.35rem 0;
+  position: relative;
+  z-index: 2;
+}
+
+.swap-arrow-circle {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  background: rgba(var(--surface-color), 1);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Receive Container */
+.receive-container {
+  background: rgba(0, 194, 255, 0.04);
+  border-color: rgba(0, 194, 255, 0.2);
+}
+
+.swap-output-val {
+  flex: 1;
+  font-family: "Roboto Mono", monospace;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.token-receive-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(var(--surface-color), 1);
+  border: 1px solid var(--card-border);
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.token-mini-avatar {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.token-receive-symbol {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(var(--text-color), 1);
+}
+
+/* Slippage / Route Info */
+.swap-details-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--text-color-muted);
+  padding: 0 0.25rem;
+}
+
+.swap-detail-item strong {
+  color: rgba(var(--text-color), 0.9);
+}
+
+/* Buy Action CTA Button */
+.swap-submit-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 1.25rem;
+  border-radius: 0.65rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-color) 0%, #0088FF 100%);
+  border: none;
+  box-shadow: 0 4px 18px rgba(0, 194, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.3px;
+}
+
+.swap-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 194, 255, 0.45);
+  background: linear-gradient(135deg, #00D2FF 0%, #0077FF 100%);
+}
+
+.swap-submit-btn:active {
+  transform: translateY(0);
+}
+
+.swap-footer-hint {
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--text-color-muted);
+}
+
+.calc-loading-pulse {
+  font-size: 0.95rem;
+  color: var(--text-color-muted);
+  opacity: 0.7;
 }
 
 /* Buy $NAVIERSTOK Highlight Section */
@@ -675,6 +1017,13 @@ sm-button {
 }
 
 /* Responsive Media Queries */
+@media screen and (max-width: 960px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
 @media screen and (max-width: 860px) {
   .container {
     padding: 0 1.5rem;
@@ -716,6 +1065,16 @@ sm-button {
   }
   .stat-sub {
     font-size: 0.65rem;
+  }
+  .swap-box {
+    padding: 1.1rem 1rem;
+    gap: 0.75rem;
+  }
+  .swap-input {
+    font-size: 1.25rem;
+  }
+  .swap-output-val {
+    font-size: 1.2rem;
   }
   .contract-card {
     padding: 0.9rem 0.85rem;
