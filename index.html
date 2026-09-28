@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAVIERSTOK - Linking AI with Blockchain through Memes & YouTube</title>
+    <meta name="description" content="NAVIERSTOK: The revolutionary crypto token merging artificial intelligence, blockchain mechanics, viral memes, and YouTube creator culture within the RanchiMall ecosystem.">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Standard UI SVG sprite -->
+    <link rel="preload" href="assets/aggregate.svg" as="image" type="image/svg+xml">
+</head>
+
+<body data-theme="light">
+    <!-- Standard UI Notifications -->
+    <sm-notifications id="notification_drawer"></sm-notifications>
+
+    <!-- Standard UI Audio Elements -->
+    <audio id="notification_sound">
+        <source src="notification-sound/notification.mp3" type="audio/mpeg">
+        <source src="notification-sound/notification.ogg" type="audio/ogg">
+    </audio>
+
+    <!-- Standard UI Confirmation Popup -->
+    <sm-popup id="confirmation_popup">
+        <h4 id="confirm_title">Confirm Action</h4>
+        <p id="confirm_message"></p>
+        <div class="flex align-center gap-1 justify-center">
+            <sm-button variant="no-outline" class="cancel-btn">Cancel</sm-button>
+            <sm-button variant="primary" class="submit-btn">Confirm</sm-button>
+        </div>
+    </sm-popup>
+
+    <!-- Standard UI Prompt Popup -->
+    <sm-popup id="prompt_popup">
+        <h4 id="prompt_title">Input Required</h4>
+        <p id="prompt_message"></p>
+        <sm-input id="prompt_input" placeholder="Type here..."></sm-input>
+        <div class="flex align-center gap-1 justify-center">
+            <sm-button variant="no-outline" class="cancel-btn">Cancel</sm-button>
+            <sm-button variant="primary" class="submit-btn">Submit</sm-button>
+        </div>
+    </sm-popup>
+
+    <!-- Trade & DEX Links Popup -->
+    <sm-popup id="trade_popup">
+        <div class="flex align-center space-between">
+            <h4>Trade NAVIERSTOK</h4>
+            <sm-button variant="no-outline" onclick="hidePopup()" style="padding: 0.2rem 0.5rem;">✕</sm-button>
+        </div>
+        <p>Choose your preferred decentralized exchange to acquire NAVIERSTOK tokens:</p>
+        <div class="flex direction-column gap-1">
+            <a href="https://jup.ag" target="_blank" rel="noopener" class="contract-box interact" style="text-decoration: none;">
+                <div class="flex align-center gap-1">
+                    <div class="token-icon-wrap" style="width: 2.2rem; height: 2.2rem; border-radius: 0.4rem; font-size: 0.9rem;">🪐</div>
+                    <div>
+                        <h4 style="font-size: 0.95rem;">Jupiter DEX (Solana)</h4>
+                        <p style="font-size: 0.75rem; margin: 0;">Best routing and liquidity aggregation</p>
+                    </div>
+                </div>
+                <sm-button variant="outlined" style="pointer-events: none;">Trade ↗</sm-button>
+            </a>
+            <a href="https://dexscreener.com" target="_blank" rel="noopener" class="contract-box interact" style="text-decoration: none;">
+                <div class="flex align-center gap-1">
+                    <div class="token-icon-wrap" style="width: 2.2rem; height: 2.2rem; border-radius: 0.4rem; font-size: 0.9rem;">📈</div>
+                    <div>
+                        <h4 style="font-size: 0.95rem;">DexScreener Charts</h4>
+                        <p style="font-size: 0.75rem; margin: 0;">Live price, volume and pair tracking</p>
+                    </div>
+                </div>
+                <sm-button variant="outlined" style="pointer-events: none;">View ↗</sm-button>
+            </a>
+            <a href="https://ranchimall.net" target="_blank" rel="noopener" class="contract-box interact" style="text-decoration: none;">
+                <div class="flex align-center gap-1">
+                    <div class="token-icon-wrap" style="width: 2.2rem; height: 2.2rem; border-radius: 0.4rem; font-size: 0.9rem;">🏛️</div>
+                    <div>
+                        <h4 style="font-size: 0.95rem;">RanchiMall Ecosystem</h4>
+                        <p style="font-size: 0.75rem; margin: 0;">Decentralized contracts & governance</p>
+                    </div>
+                </div>
+                <sm-button variant="outlined" style="pointer-events: none;">Visit ↗</sm-button>
+            </a>
+        </div>
+    </sm-popup>
+
+    <!-- Community & Newsletter Popup -->
+    <sm-popup id="community_popup">
+        <div class="flex align-center space-between">
+            <h4>Join the Fluid Wave</h4>
+            <sm-button variant="no-outline" onclick="hidePopup()" style="padding: 0.2rem 0.5rem;">✕</sm-button>
+        </div>
+        <p>Subscribe for upcoming AI meme drops, YouTube creator bounties, and mathematical research updates.</p>
+        <form id="community_form" onsubmit="handleNewsletterSubmit(event)" class="flex direction-column gap-1">
+            <sm-input id="email_input" type="email" placeholder="Enter your email" required></sm-input>
+            <sm-input id="handle_input" placeholder="Telegram / Twitter handle (optional)"></sm-input>
+            <sm-button variant="primary" type="submit">Subscribe Now</sm-button>
+        </form>
+    </sm-popup>
+
+    <!-- Navigation Header -->
+    <header id="main_header">
+        <div class="header__left">
+            <div id="logo" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                <div class="logo-badge">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                        <path d="M12 6v6l4 2" />
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h5>RanchiMall Token</h5>
+                    <h4>NAVIERSTOK</h4>
+                </div>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#about" class="nav-link">About</a></li>
+                <li><a href="#pillars" class="nav-link">Core Pillars</a></li>
+                <li><a href="#equations" class="nav-link">AI & Physics</a></li>
+                <li><a href="#tokenomics" class="nav-link">Tokenomics</a></li>
+                <li><a href="#memes" class="nav-link">Memes & Media</a></li>
+                <li><a href="#roadmap" class="nav-link">Roadmap</a></li>
+                <li><a href="#faq" class="nav-link">FAQ</a></li>
+            </ul>
+        </div>
+        <div class="header__right">
+            <sm-button variant="primary" onclick="openPopup('trade_popup')" class="interact">
+                Buy Token
+            </sm-button>
+            <theme-toggle></theme-toggle>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="container">
+                <div class="hero-grid">
+                    <div>
+                        <div class="badge-tag">
+                            <span class="badge-pulse"></span>
+                            AI × Blockchain × Fluid Dynamics
+                        </div>
+                        <h1 class="hero-title">
+                            Linking <span>AI</span> with <span>Blockchain</span> through Memes & YouTube
+                        </h1>
+                        <p class="hero-desc">
+                            <strong>NAVIERSTOK</strong> translates the mathematical beauty of the Navier-Stokes fluid equations into decentralized liquidity, viral meme culture, and educational creator broadcasts on YouTube.
+                        </p>
+                        <div class="hero-actions">
+                            <sm-button variant="primary" onclick="openPopup('trade_popup')" class="interact">
+                                Trade NAVIERSTOK
+                            </sm-button>
+                            <sm-button variant="outlined" onclick="document.getElementById('equations').scrollIntoView({behavior: 'smooth'})" class="interact">
+                                Explore The Math
+                            </sm-button>
+                            <sm-button variant="no-outline" onclick="openPopup('community_popup')" class="interact">
+                                Join Community
+                            </sm-button>
+                        </div>
+
+                        <!-- Token Contract Copy Bar -->
+                        <div class="contract-box">
+                            <div class="contract-info">
+                                <span class="contract-label">Token Contract Address</span>
+                                <span class="contract-address" id="contract_code">NVSTK9vM1L8xQp7s2W5EwZ6uB9RtNmX4KdF8aL0qYeR</span>
+                            </div>
+                            <sm-button variant="outlined" onclick="copyContractAddress()" class="interact" style="white-space: nowrap;">
+                                <svg class="icon" style="width: 1rem; height: 1rem; margin-right: 0.35rem;" viewBox="0 0 24 24">
+                                    <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 5 6 5.9 6 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                                </svg>
+                                Copy
+                            </sm-button>
+                        </div>
+                    </div>
+
+                    <!-- Hero Visual Card -->
+                    <div class="hero-card">
+                        <div class="token-badge-large">
+                            <div class="token-icon-wrap">
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M8 12c1.5-3 6.5-3 8 0s-6.5 3-8 0z" />
+                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>$NAVIERSTOK</h3>
+                                <p style="margin: 0; font-size: 0.85rem;">RanchiMall Meme & AI Ecosystem</p>
+                            </div>
+                        </div>
+
+                        <div class="token-stats-grid">
+                            <div class="stat-item">
+                                <h4>Fluid Math</h4>
+                                <p>Navier-Stokes Model</p>
+                            </div>
+                            <div class="stat-item">
+                                <h4>100%</h4>
+                                <p>Decentralized</p>
+                            </div>
+                            <div class="stat-item">
+                                <h4>AI Driven</h4>
+                                <p>Meme Generation</p>
+                            </div>
+                            <div class="stat-item">
+                                <h4>YouTube</h4>
+                                <p>Creator Nexus</p>
+                            </div>
+                        </div>
+
+                        <div class="math-preview">
+                            ρ(∂u/∂t + u·∇u) = −∇p + μ∇²u + f
+                        </div>
+
+                        <div class="flex align-center space-between">
+                            <span style="font-size: 0.8rem; color: var(--text-color-muted);">Ecosystem Status</span>
+                            <span class="badge-tag" style="margin: 0; padding: 0.2rem 0.6rem; font-size: 0.75rem;">
+                                Active & Flowing 🌊
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Pillars Section -->
+        <section id="pillars" class="section">
+            <div class="container">
+                <div class="section-header text-center">
+                    <span class="badge-tag">Architecture</span>
+                    <h2 class="section-title">The Four Pillars of NAVIERSTOK</h2>
+                    <p>Designed at the intersection of deep mathematics, generative intelligence, decentralized finance, and viral entertainment.</p>
+                </div>
+
+                <div class="cards-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.93V18a1 1 0 0 1-2 0v-1.07A8 8 0 0 1 4.07 10H5a1 1 0 0 1 0 2 6 6 0 0 0 6 6v1.93zM18 12a6 6 0 0 0-6-6V4.07A8 8 0 0 1 19.93 11H19a1 1 0 0 1-1 1z"/>
+                            </svg>
+                        </div>
+                        <h3>AI Flow Dynamics</h3>
+                        <p>Leveraging artificial intelligence to model continuous liquidity flows and tokenize computational fluid dynamics lore on chain.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                        </div>
+                        <h3>Meme Engineering</h3>
+                        <p>Transforming complex academic concepts into viral visual artifacts, engaging millions of crypto enthusiasts and curious learners.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M21.58 7.19a2.5 2.5 0 0 0-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42A2.5 2.5 0 0 0 2.42 7.19C2 8.75 2 12 2 12s0 3.25.42 4.81a2.5 2.5 0 0 0 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42a2.5 2.5 0 0 0 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z"/>
+                            </svg>
+                        </div>
+                        <h3>YouTube Broadcasts</h3>
+                        <p>Dedicated creator nexus sharing tutorials, AI developments, community streams, and entertaining deep dives into crypto science.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                            </svg>
+                        </div>
+                        <h3>RanchiMall Heritage</h3>
+                        <p>Rooted in RanchiMall’s pioneering blockchain contract ecosystem active since 2017 with a proven history of decentralized initiatives.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI & Navier-Stokes Lore Section -->
+        <section id="equations" class="section">
+            <div class="container">
+                <div class="equation-card">
+                    <div>
+                        <span class="badge-tag">Mathematical Lore</span>
+                        <h2 class="section-title">The Navier-Stokes Millennium Problem</h2>
+                        <p>
+                            The Navier-Stokes equations describe how fluids like air and water flow. Formulated in the 19th century, understanding smooth mathematical solutions remains one of the Seven Millennium Prize Problems in Mathematics.
+                        </p>
+                        <p>
+                            In <strong>NAVIERSTOK</strong>, turbulent market conditions and AI gradient descent mirror fluid mechanics. We harness this physics-inspired narrative to symbolize smooth liquidity transitions and mathematical resilience.
+                        </p>
+                        <div class="flex gap-1 wrap" style="margin-top: 1.5rem;">
+                            <sm-button variant="outlined" onclick="solveFluidQuiz()" class="interact">
+                                Interactive Fluid Trivia
+                            </sm-button>
+                            <sm-button variant="no-outline" onclick="notify('Navier-Stokes equation verified across AI gradients!', 'success')" class="interact">
+                                Test Verification
+                            </sm-button>
+                        </div>
+                    </div>
+
+                    <div class="equation-display">
+                        <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-color-muted);">Continuity & Momentum</span>
+                        <div class="equation-formula">
+                            ∂u/∂t + (u · ∇)u = −(1/ρ)∇p + ν∇²u + g
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-color-muted); line-height: 1.6;">
+                            • <strong>u</strong>: Fluid Velocity Vector (Market Momentum)<br>
+                            • <strong>p</strong>: Pressure Field (Liquidity Depth)<br>
+                            • <strong>ν</strong>: Kinematic Viscosity (Friction & Slippage)<br>
+                            • <strong>ρ</strong>: Density (Community Strength)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tokenomics & Interactive Calculator -->
+        <section id="tokenomics" class="section">
+            <div class="container">
+                <div class="section-header text-center">
+                    <span class="badge-tag">Economics</span>
+                    <h2 class="section-title">Transparent Tokenomics</h2>
+                    <p>Structured for community alignment, decentralized liquidity, and sustained AI development.</p>
+                </div>
+
+                <div class="tokenomics-grid">
+                    <!-- Breakdown Card -->
+                    <div class="token-detail-card">
+                        <h3>Distribution Metrics</h3>
+                        <p style="margin: 0;">Balanced allocation designed for long-term sustainability and organic creator growth.</p>
+                        
+                        <div class="progress-bar-wrap">
+                            <div class="prog-1" title="Community & DEX Liquidity: 50%"></div>
+                            <div class="prog-2" title="AI & Algorithm R&D: 25%"></div>
+                            <div class="prog-3" title="YouTube Creators & Ecosystem: 15%"></div>
+                            <div class="prog-4" title="Strategic Reserve: 10%"></div>
+                        </div>
+
+                        <div class="token-row">
+                            <span class="label">Token Symbol</span>
+                            <span class="val">$NAVIERSTOK</span>
+                        </div>
+                        <div class="token-row">
+                            <span class="label">Total Supply</span>
+                            <span class="val">1,000,000,000</span>
+                        </div>
+                        <div class="token-row">
+                            <span class="label">DEX & Liquidity Pool (50%)</span>
+                            <span class="val">500,000,000</span>
+                        </div>
+                        <div class="token-row">
+                            <span class="label">AI & Algorithmic R&D (25%)</span>
+                            <span class="val">250,000,000</span>
+                        </div>
+                        <div class="token-row">
+                            <span class="label">YouTube Creator Bounties (15%)</span>
+                            <span class="val">150,000,000</span>
+                        </div>
+                        <div class="token-row">
+                            <span class="label">Ecosystem Reserve (10%)</span>
+                            <span class="val">100,000,000</span>
+                        </div>
+                    </div>
+
+                    <!-- Calculator Card -->
+                    <div class="calc-card">
+                        <h3>Token Simulator & Converter</h3>
+                        <p style="margin-bottom: 1rem;">Simulate acquiring NAVIERSTOK tokens and see your share in the fluid AI movement.</p>
+                        
+                        <div class="flex direction-column gap-1">
+                            <sm-input id="calc_amount" type="number" placeholder="Enter SOL amount" value="1.0"></sm-input>
+                            <div class="flex space-between align-center" style="padding: 0.5rem 0;">
+                                <span style="font-size: 0.85rem; color: var(--text-color-muted);">Estimated NAVIERSTOK:</span>
+                                <span id="calc_result" style="font-family: 'Roboto Mono', monospace; font-weight: 700; color: var(--accent-color); font-size: 1.15rem;">
+                                    125,000 NVSTK
+                                </span>
+                            </div>
+                            <sm-button variant="primary" onclick="simulateSwap()" class="interact">
+                                Simulate Swap
+                            </sm-button>
+                            <span style="font-size: 0.75rem; color: var(--text-color-muted); text-align: center;">
+                                * Simulation for illustrative estimates. Actual rates determined by DEX pool ratios.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Memes & YouTube Showcase (Carousel) -->
+        <section id="memes" class="section">
+            <div class="container">
+                <div class="section-header text-center">
+                    <span class="badge-tag">Creator Culture</span>
+                    <h2 class="section-title">Memes & YouTube Showcase</h2>
+                    <p>Where AI mathematical theory meets viral internet humor and community-led video entertainment.</p>
+                </div>
+
+                <!-- Standard UI Carousel Component -->
+                <sm-carousel>
+                    <div class="meme-card">
+                        <div class="meme-visual">
+                            <div style="font-size: 3rem;">🌊🤖</div>
+                        </div>
+                        <div class="meme-content">
+                            <h4>Fluid Neural Network</h4>
+                            <p>When your loss function achieves smooth laminar flow without gradient explosions.</p>
+                            <sm-button variant="no-outline" onclick="notify('Meme shared with the community!', 'success')">Share Meme</sm-button>
+                        </div>
+                    </div>
+
+                    <div class="meme-card">
+                        <div class="meme-visual">
+                            <div style="font-size: 3rem;">📺⚡</div>
+                        </div>
+                        <div class="meme-content">
+                            <h4>YouTube Creator Nexus</h4>
+                            <p>Weekly breakdowns on Navier-Stokes physics, decentralized tokens, and AI agents.</p>
+                            <sm-button variant="no-outline" onclick="openPopup('community_popup')">Watch Videos</sm-button>
+                        </div>
+                    </div>
+
+                    <div class="meme-card">
+                        <div class="meme-visual">
+                            <div style="font-size: 3rem;">💡📊</div>
+                        </div>
+                        <div class="meme-content">
+                            <h4>Turbulence into Liquidity</h4>
+                            <p>Transforming complex high-dimensional PDEs into smooth peer-to-peer liquidity.</p>
+                            <sm-button variant="no-outline" onclick="notify('Equation bookmark saved!', 'success')">Save Concept</sm-button>
+                        </div>
+                    </div>
+
+                    <div class="meme-card">
+                        <div class="meme-visual">
+                            <div style="font-size: 3rem;">🚀🪙</div>
+                        </div>
+                        <div class="meme-content">
+                            <h4>RanchiMall Ecosystem</h4>
+                            <p>Blockchain contracts, decentralized intelligence, and long-term crypto fundamentals.</p>
+                            <sm-button variant="no-outline" onclick="openPopup('trade_popup')">Explore Ecosystem</sm-button>
+                        </div>
+                    </div>
+                </sm-carousel>
+            </div>
+        </section>
+
+        <!-- Roadmap -->
+        <section id="roadmap" class="section">
+            <div class="container">
+                <div class="section-header text-center">
+                    <span class="badge-tag">Milestones</span>
+                    <h2 class="section-title">Development Roadmap</h2>
+                    <p>Our journey to establish the foremost AI & mathematical meme token on decentralized networks.</p>
+                </div>
+
+                <div class="roadmap-timeline">
+                    <div class="roadmap-step active">
+                        <div class="step-num"><span class="dot"></span> Phase 1: Genesis Flow</div>
+                        <h4>Launch & Foundation</h4>
+                        <ul>
+                            <li>Smart contract deployment & DEX listing</li>
+                            <li>Standard UI official webpage release</li>
+                            <li>Initial liquidity pool establishment</li>
+                            <li>Community Telegram & Twitter kickoff</li>
+                        </ul>
+                    </div>
+
+                    <div class="roadmap-step">
+                        <div class="step-num"><span class="dot"></span> Phase 2: Media Surge</div>
+                        <h4>YouTube & AI Bot Suite</h4>
+                        <ul>
+                            <li>Launch of YouTube educational series</li>
+                            <li>AI-driven automated meme generation bot</li>
+                            <li>Community creator reward program</li>
+                            <li>DexScreener & CoinGecko indexing</li>
+                        </ul>
+                    </div>
+
+                    <div class="roadmap-step">
+                        <div class="step-num"><span class="dot"></span> Phase 3: Fluid Scale</div>
+                        <h4>Expansion & Cross-Chain</h4>
+                        <ul>
+                            <li>Integration with decentralized AI workflows</li>
+                            <li>Cross-chain liquidity bridge exploration</li>
+                            <li>Community governance voting modules</li>
+                            <li>Mathematical hackathons & prize pools</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="section">
+            <div class="container">
+                <div class="section-header text-center">
+                    <span class="badge-tag">Knowledge Base</span>
+                    <h2 class="section-title">Frequently Asked Questions</h2>
+                    <p>Everything you need to know about NAVIERSTOK and the RanchiMall ecosystem.</p>
+                </div>
+
+                <div class="faq-grid">
+                    <details class="faq-item" open>
+                        <summary class="faq-summary">What is NAVIERSTOK?</summary>
+                        <div class="faq-body">
+                            NAVIERSTOK is an AI-powered crypto token inspired by the famous Navier-Stokes fluid dynamics equations. It connects cutting-edge mathematical computing with blockchain decentralization, internet meme culture, and YouTube multimedia education.
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary class="faq-summary">How does the YouTube & Meme integration work?</summary>
+                        <div class="faq-body">
+                            We sponsor and collaborate with creators who explain science, AI, and crypto concepts. Community members can submit AI-generated memes and educational content to earn token bounties and gain features across our social networks.
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary class="faq-summary">What is the relationship with RanchiMall?</summary>
+                        <div class="faq-body">
+                            NAVIERSTOK is part of the innovative crypto series created by RanchiMall, a pioneering organization in decentralized contracts, blockchain-based products, and fintech initiatives operating since 2017.
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary class="faq-summary">How can I acquire NAVIERSTOK tokens?</summary>
+                        <div class="faq-body">
+                            You can swap for NAVIERSTOK on decentralized exchanges like Jupiter (on Solana) by entering the official contract address into the swap interface.
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer id="main_footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div id="logo" style="margin-bottom: 1rem;">
+                        <div class="logo-badge">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 6v6l4 2" />
+                            </svg>
+                        </div>
+                        <div class="logo-text">
+                            <h5>RanchiMall Token</h5>
+                            <h4>NAVIERSTOK</h4>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem;">
+                        Merging AI intelligence, fluid mathematics, and viral internet culture on the blockchain. Built with RanchiMall Standard UI.
+                    </p>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Navigation</h5>
+                    <ul>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#pillars">Core Pillars</a></li>
+                        <li><a href="#equations">AI Equations</a></li>
+                        <li><a href="#tokenomics">Tokenomics</a></li>
+                        <li><a href="#roadmap">Roadmap</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Ecosystem</h5>
+                    <ul>
+                        <li><a href="https://jup.ag" target="_blank" rel="noopener">Jupiter DEX</a></li>
+                        <li><a href="https://dexscreener.com" target="_blank" rel="noopener">DexScreener</a></li>
+                        <li><a href="https://ranchimall.net" target="_blank" rel="noopener">RanchiMall Main</a></li>
+                        <li><a href="https://github.com/ranchimall" target="_blank" rel="noopener">GitHub</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Community</h5>
+                    <ul>
+                        <li><a href="javascript:void(0)" onclick="openPopup('community_popup')">Newsletter</a></li>
+                        <li><a href="https://youtube.com" target="_blank" rel="noopener">YouTube Channel</a></li>
+                        <li><a href="javascript:void(0)" onclick="notify('Telegram group link coming with next announcement!', 'info')">Telegram</a></li>
+                        <li><a href="javascript:void(0)" onclick="notify('Twitter handle verified!', 'info')">Twitter / X</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <span>&copy; 2026 RanchiMall / NAVIERSTOK. Built using Standard UI native web components.</span>
+                <div class="flex gap-1 align-center">
+                    <a href="javascript:void(0)" onclick="notify('Privacy policy: Zero tracking cookies stored.', 'info')">Privacy</a>
+                    <span>•</span>
+                    <a href="javascript:void(0)" onclick="notify('Terms: Decentralized open-source token initiative.', 'info')">Terms</a>
+                    <span>•</span>
+                    <a href="https://github.com/ranchimall/standard-ui" target="_blank" rel="noopener">Standard UI Docs</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts: Standard UI Javascript Library & Web Components -->
+    <script src="js/main_UI.js"></script>
+    <script src="js/components.min.js"></script>
+
+    <!-- Custom Page Interactions -->
+    <script>
+        // Contract Address Copy Interaction
+        function copyContractAddress() {
+            const address = document.getElementById('contract_code').textContent.trim();
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(address).then(() => {
+                    notify('Contract address copied to clipboard!', 'success');
+                }).catch(() => {
+                    notify('Copied: ' + address, 'success');
+                });
+            } else {
+                notify('Copied: ' + address, 'success');
+            }
+        }
+
+        // Swap Simulation Calculation
+        const calcInput = document.getElementById('calc_amount');
+        const calcResult = document.getElementById('calc_result');
+        if (calcInput) {
+            calcInput.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value) || 0;
+                const tokens = (val * 125000).toLocaleString();
+                calcResult.textContent = `${tokens} NVSTK`;
+            });
+        }
+
+        function simulateSwap() {
+            const val = parseFloat(calcInput.value) || 0;
+            if (val <= 0) {
+                notify('Please enter a valid amount greater than 0', 'error');
+                return;
+            }
+            notify(`Simulation: ${val} SOL → ${(val * 125000).toLocaleString()} NAVIERSTOK`, 'success');
+        }
+
+        // Trivia interactive quiz
+        function solveFluidQuiz() {
+            getConfirmation(
+                "Navier-Stokes Quiz",
+                "Did you know? The Navier-Stokes existence and smoothness problem carries a $1,000,000 Millennium Prize from the Clay Mathematics Institute!",
+                "Close",
+                "Explore More"
+            ).then(() => {
+                window.open('https://en.wikipedia.org/wiki/Navier%E2%80%93Stokes_existence_and_smoothness', '_blank');
+            }).catch(() => {});
+        }
+
+        // Newsletter subscription handler
+        function handleNewsletterSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('email_input').value;
+            hidePopup();
+            notify(`Thank you! ${email} has been subscribed to NAVIERSTOK updates.`, 'success');
+            document.getElementById('community_form').reset();
+        }
+    </script>
+</body>
+</html>
