@@ -141,7 +141,7 @@ sm-button {
   width: 100%;
   max-width: 1560px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 clamp(1.5rem, 3.5vw, 3.5rem);
 }
 
 /* Header */
@@ -676,6 +676,9 @@ sm-button {
 
 /* Responsive Media Queries */
 @media screen and (max-width: 860px) {
+  .container {
+    padding: 0 1.5rem;
+  }
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -687,10 +690,10 @@ sm-button {
 
 @media screen and (max-width: 480px) {
   .container {
-    padding: 0 0.75rem;
+    padding: 0 1.25rem;
   }
   #main_header {
-    padding: 0.5rem 0.65rem;
+    padding: 0.65rem 0;
   }
   .hero {
     padding: 1.25rem 0 1rem;
@@ -706,28 +709,31 @@ sm-button {
     gap: 0.5rem;
   }
   .stat-card {
-    padding: 0.75rem 0.65rem;
+    padding: 0.85rem 0.75rem;
   }
   .stat-value {
-    font-size: 0.9rem;
+    font-size: 0.92rem;
   }
   .stat-sub {
     font-size: 0.65rem;
   }
   .contract-card {
-    padding: 0.85rem 0.75rem;
+    padding: 0.9rem 0.85rem;
   }
   .contract-address-bar {
     font-size: 0.74rem;
     padding: 0.35rem 0.5rem;
   }
   .buy-section {
-    padding: 0.95rem 0.75rem;
+    padding: 1.1rem 0.95rem;
     margin-bottom: 1.25rem;
   }
   .buy-grid {
     grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
+  }
+  .buy-card {
+    padding: 0.65rem 0.65rem;
   }
   .buy-name {
     font-size: 0.78rem;
