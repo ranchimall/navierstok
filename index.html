@@ -78,12 +78,12 @@
                         <div class="price-strip-item">
                             <span class="price-strip-dot" title="Live On-Chain Data"></span>
                             <span class="price-strip-label">Price:</span>
-                            <span class="price-strip-val" id="live_hero_price">$0.0001657 USD</span>
+                            <span class="price-strip-val" id="live_hero_price">$0.0001657</span>
                         </div>
                         <span class="price-strip-divider">•</span>
                         <div class="price-strip-item">
                             <span class="price-strip-label">Market Cap:</span>
-                            <span class="price-strip-val" id="live_hero_mcap">$166K USD</span>
+                            <span class="price-strip-val" id="live_hero_mcap">$166K</span>
                         </div>
                         <span class="price-strip-divider">•</span>
                         <div class="price-strip-item">
@@ -517,17 +517,17 @@
                 priceEl.textContent = '$' + navierstokUsd.toLocaleString(undefined, {
                     minimumFractionDigits: 6,
                     maximumFractionDigits: 7
-                }) + ' USD';
+                });
             }
 
             if (mcapEl && navierstokUsd > 0) {
                 const totalMcap = navierstokUsd * 1000000000;
                 if (totalMcap >= 1000000) {
-                    mcapEl.textContent = '$' + (totalMcap / 1000000).toFixed(2) + 'M USD';
+                    mcapEl.textContent = '$' + (totalMcap / 1000000).toFixed(2) + 'M';
                 } else if (totalMcap >= 1000) {
-                    mcapEl.textContent = '$' + Math.round(totalMcap / 1000) + 'K USD';
+                    mcapEl.textContent = '$' + Math.round(totalMcap / 1000) + 'K';
                 } else {
-                    mcapEl.textContent = '$' + Math.round(totalMcap).toLocaleString() + ' USD';
+                    mcapEl.textContent = '$' + Math.round(totalMcap).toLocaleString();
                 }
             }
 
