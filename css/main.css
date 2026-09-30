@@ -1241,9 +1241,13 @@ sm-button {
     grid-column: span 2;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    padding-top: 0.4rem;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    padding-top: 0.45rem;
     border-top: 1px solid var(--border-color);
+  }
+  .ticker-col:last-child .ticker-badge-wrap {
+    margin-top: 0;
   }
   .ticker-col-val {
     font-size: 1.12rem;
