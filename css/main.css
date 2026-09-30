@@ -315,13 +315,73 @@ sm-button {
   font-size: 1.2rem;
   font-weight: 500;
   color: rgba(var(--text-color), 0.9);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.85rem;
 }
 
-.hero-desc {
-  font-size: 0.95rem;
-  max-width: 85ch;
-  margin-bottom: 1.75rem;
+/* Live Price Strip in Hero */
+.live-price-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.55rem;
+  margin-bottom: 0.5rem;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.price-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.price-strip-dot {
+  width: 7px;
+  height: 7px;
+  min-width: 7px;
+  border-radius: 50%;
+  background-color: var(--success-color);
+  box-shadow: 0 0 8px var(--success-color);
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.price-strip-label {
+  color: var(--text-color-muted);
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+.price-strip-val {
+  font-weight: 700;
+  color: rgba(var(--text-color), 1);
+  font-family: "Roboto Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.price-strip-divider {
+  color: var(--border-color);
+  font-size: 0.85rem;
+}
+
+.price-change-up {
+  color: var(--success-color) !important;
+}
+
+.price-change-down {
+  color: var(--danger-color) !important;
 }
 
 /* Stats Grid */

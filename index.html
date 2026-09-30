@@ -73,6 +73,25 @@
                     <h1 class="hero-title">Navier Stokes <span>($NAVIERSTOK)</span></h1>
                     <p class="hero-tagline">Linking AI with Blockchain through Memes and YouTube</p>
 
+                    <!-- Live Token Price & Market Cap Strip -->
+                    <div class="live-price-strip">
+                        <div class="price-strip-item">
+                            <span class="price-strip-dot" title="Live On-Chain Data"></span>
+                            <span class="price-strip-label">Price:</span>
+                            <span class="price-strip-val" id="live_hero_price">$0.0001657 USD</span>
+                        </div>
+                        <span class="price-strip-divider">•</span>
+                        <div class="price-strip-item">
+                            <span class="price-strip-label">Market Cap:</span>
+                            <span class="price-strip-val" id="live_hero_mcap">$166K USD</span>
+                        </div>
+                        <span class="price-strip-divider">•</span>
+                        <div class="price-strip-item">
+                            <span class="price-strip-label">24h Change:</span>
+                            <span class="price-strip-val price-change-up" id="live_hero_24h">+21.5%</span>
+                        </div>
+                    </div>
+
                     <!-- Verified Metrics Grid -->
                     <div class="stats-grid">
                         <div class="stat-card">
@@ -480,11 +499,45 @@
 
         // Price and Swap State
         const priceState = {
-            navierstokPriceInTsmx: 0.0000002404, // Default fallback from PumpSwap AMM
-            tsmxPriceInUsd: 460.52,             // Default fallback from Orca
-            solPriceInUsd: 120.00,              // Default fallback
+            navierstokPriceInTsmx: 0.0000003495, // Default fallback from PumpSwap AMM
+            tsmxPriceInUsd: 475.00,             // Default fallback from Orca
+            solPriceInUsd: 150.00,              // Default fallback
+            priceChange24h: 21.5,               // 24h % change fallback
             currentSpendCurrency: 'SOL'
         };
+
+        // Update Live Hero Price, Market Cap, and 24h Change Banner
+        function updateHeroPriceDisplay() {
+            const navierstokUsd = priceState.navierstokPriceInTsmx * priceState.tsmxPriceInUsd;
+            const priceEl = document.getElementById('live_hero_price');
+            const mcapEl = document.getElementById('live_hero_mcap');
+            const changeEl = document.getElementById('live_hero_24h');
+
+            if (priceEl && navierstokUsd > 0) {
+                priceEl.textContent = '$' + navierstokUsd.toLocaleString(undefined, {
+                    minimumFractionDigits: 6,
+                    maximumFractionDigits: 7
+                }) + ' USD';
+            }
+
+            if (mcapEl && navierstokUsd > 0) {
+                const totalMcap = navierstokUsd * 1000000000;
+                if (totalMcap >= 1000000) {
+                    mcapEl.textContent = '$' + (totalMcap / 1000000).toFixed(2) + 'M USD';
+                } else if (totalMcap >= 1000) {
+                    mcapEl.textContent = '$' + Math.round(totalMcap / 1000) + 'K USD';
+                } else {
+                    mcapEl.textContent = '$' + Math.round(totalMcap).toLocaleString() + ' USD';
+                }
+            }
+
+            if (changeEl) {
+                const change = priceState.priceChange24h;
+                const sign = change > 0 ? '+' : '';
+                changeEl.textContent = sign + change.toFixed(1) + '%';
+                changeEl.className = 'price-strip-val ' + (change >= 0 ? 'price-change-up' : 'price-change-down');
+            }
+        }
 
         // Fetch Live Prices from DexScreener & CoinGecko
         async function fetchLivePrices() {
@@ -498,6 +551,12 @@
                         const priceNative = parseFloat(pair.priceNative);
                         if (!isNaN(priceNative) && priceNative > 0) {
                             priceState.navierstokPriceInTsmx = priceNative;
+                        }
+                        if (pair.priceChange && typeof pair.priceChange.h24 !== 'undefined') {
+                            const change24 = parseFloat(pair.priceChange.h24);
+                            if (!isNaN(change24)) {
+                                priceState.priceChange24h = change24;
+                            }
                         }
                     }
                 }
@@ -538,6 +597,7 @@
                 console.warn('CoinGecko SOL price fallback used', err);
             }
 
+            updateHeroPriceDisplay();
             updateCalculations();
         }
 
