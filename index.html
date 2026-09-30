@@ -73,22 +73,34 @@
                     <h1 class="hero-title">Navier Stokes <span>($NAVIERSTOK)</span></h1>
                     <p class="hero-tagline">Linking AI with Blockchain through Memes and YouTube</p>
 
-                    <!-- Live Token Price & Market Cap Strip -->
-                    <div class="live-price-strip">
-                        <div class="price-strip-item">
-                            <span class="price-strip-dot" title="Live On-Chain Data"></span>
-                            <span class="price-strip-label">Price:</span>
-                            <span class="price-strip-val" id="live_hero_price">$0.0001657</span>
+                    <!-- High-Impact Live Ticker Card -->
+                    <div class="live-ticker-card">
+                        <div class="ticker-col">
+                            <div class="ticker-label-row">
+                                <span class="ticker-live-dot" title="Live On-Chain Data"></span>
+                                <span class="ticker-col-label">Price</span>
+                            </div>
+                            <span class="ticker-col-val" id="live_hero_price">$0.0001657</span>
                         </div>
-                        <span class="price-strip-divider">•</span>
-                        <div class="price-strip-item">
-                            <span class="price-strip-label">Market Cap:</span>
-                            <span class="price-strip-val" id="live_hero_mcap">$166K</span>
+
+                        <div class="ticker-divider"></div>
+
+                        <div class="ticker-col">
+                            <div class="ticker-label-row">
+                                <span class="ticker-col-label">Market Cap</span>
+                            </div>
+                            <span class="ticker-col-val" id="live_hero_mcap">$166K</span>
                         </div>
-                        <span class="price-strip-divider">•</span>
-                        <div class="price-strip-item">
-                            <span class="price-strip-label">24h Change:</span>
-                            <span class="price-strip-val price-change-up" id="live_hero_24h">+21.5%</span>
+
+                        <div class="ticker-divider"></div>
+
+                        <div class="ticker-col">
+                            <div class="ticker-label-row">
+                                <span class="ticker-col-label">24h Change</span>
+                            </div>
+                            <div class="ticker-badge-wrap">
+                                <span class="ticker-change-badge change-up" id="live_hero_24h">▲ +21.5%</span>
+                            </div>
                         </div>
                     </div>
 
@@ -533,9 +545,11 @@
 
             if (changeEl) {
                 const change = priceState.priceChange24h;
+                const isPositive = change >= 0;
+                const arrow = isPositive ? '▲ ' : '▼ ';
                 const sign = change > 0 ? '+' : '';
-                changeEl.textContent = sign + change.toFixed(1) + '%';
-                changeEl.className = 'price-strip-val ' + (change >= 0 ? 'price-change-up' : 'price-change-down');
+                changeEl.textContent = arrow + sign + change.toFixed(1) + '%';
+                changeEl.className = 'ticker-change-badge ' + (isPositive ? 'change-up' : 'change-down');
             }
         }
 
