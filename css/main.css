@@ -1012,6 +1012,210 @@ sm-button {
   transform: translateX(2px) translateY(-2px);
 }
 
+/* Ecosystem Innovations: Power Cards Section */
+.innovations-section {
+  background: rgba(var(--surface-color), 1);
+  border: 1px solid var(--card-border);
+  border-radius: 0.85rem;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.innovations-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #00E5FF, var(--accent-color), #8B5CF6);
+}
+
+.innovations-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1.35rem;
+}
+
+.innovations-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: rgba(var(--text-color), 1);
+}
+
+.innovations-title span {
+  background: linear-gradient(135deg, var(--accent-color), #00E5FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.innovations-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-color-muted);
+}
+
+.power-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.15rem;
+  width: 100%;
+}
+
+.power-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  padding: 1.3rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.9rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
+}
+
+.power-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-color);
+  box-shadow: 0 8px 24px var(--accent-glow);
+  background: rgba(var(--surface-color), 1);
+}
+
+.power-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.power-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pill-solana {
+  background: rgba(0, 194, 255, 0.12);
+  color: #00C2FF;
+  border: 1px solid rgba(0, 194, 255, 0.3);
+}
+
+.pill-btc {
+  background: rgba(247, 147, 26, 0.12);
+  color: #f7931a;
+  border: 1px solid rgba(247, 147, 26, 0.3);
+}
+
+.pill-doge {
+  background: rgba(225, 178, 36, 0.14);
+  color: #e1b224;
+  border: 1px solid rgba(225, 178, 36, 0.35);
+}
+
+.pill-stocks {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.power-pill-icon {
+  width: 0.82rem;
+  height: 0.82rem;
+  flex-shrink: 0;
+}
+
+.power-pill-symbol {
+  font-size: 0.85rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.power-num {
+  font-family: "Roboto Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-color-muted);
+  opacity: 0.75;
+}
+
+.power-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.power-headline {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  color: rgba(var(--text-color), 1);
+}
+
+.power-subheading {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+.power-desc {
+  font-size: 0.82rem;
+  color: var(--text-color-muted);
+  line-height: 1.45;
+}
+
+.power-card-footer {
+  display: flex;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.power-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.45rem;
+  background: rgba(var(--text-color), 0.05);
+  border: 1px solid var(--card-border);
+  color: var(--accent-color);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.power-cta-btn:hover {
+  background: var(--accent-color);
+  color: #fff;
+  border-color: var(--accent-color);
+  transform: translateX(3px);
+}
+
+.power-arrow-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+  transition: transform 0.2s ease;
+}
+
+.power-cta-btn:hover .power-arrow-icon {
+  transform: translateX(2px) translateY(-2px);
+}
+
 /* Main Content Layout (2 columns: Contracts & Origin Video) */
 .content-grid {
   display: grid;
@@ -1207,6 +1411,14 @@ sm-button {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .power-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .innovations-section {
+    padding: 1.35rem 1.25rem;
+    margin-bottom: 1.75rem;
+  }
   .content-grid {
     grid-template-columns: 1fr;
     gap: 1.25rem;
@@ -1216,6 +1428,16 @@ sm-button {
 @media screen and (max-width: 480px) {
   .container {
     padding: 0 1.25rem;
+  }
+  .innovations-section {
+    padding: 1.15rem 0.95rem;
+    margin-bottom: 1.35rem;
+  }
+  .power-card {
+    padding: 1.1rem 1rem;
+  }
+  .power-headline {
+    font-size: 1.05rem;
   }
   #main_header {
     padding: 0.65rem 0;
