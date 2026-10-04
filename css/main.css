@@ -238,6 +238,43 @@ sm-button {
   transform: translateY(-2px);
 }
 
+/* X Points Auth Header Button */
+.x-points-header {
+  display: flex;
+  align-items: center;
+}
+
+.x-points-btn,
+#xLoginBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 0.45rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--accent-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: "Roboto", sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  width: auto;
+  max-width: 100%;
+}
+
+.x-points-btn:hover,
+#xLoginBtn:hover {
+  background: var(--accent-color);
+  color: #fff;
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
 /* Hero Section */
 .hero {
   padding: 2.25rem 0 1.5rem;
@@ -1441,6 +1478,15 @@ sm-button {
   }
   #main_header {
     padding: 0.65rem 0;
+  }
+  .header-right {
+    gap: 0.35rem;
+  }
+  .x-points-btn,
+  #xLoginBtn {
+    font-size: 0.7rem;
+    padding: 0 0.5rem;
+    height: 1.85rem;
   }
   .hero {
     padding: 1.25rem 0 1rem;
