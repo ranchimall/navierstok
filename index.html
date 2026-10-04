@@ -1099,28 +1099,35 @@
                 console.warn("Could not pre-fetch target ID:", err);
             }
             // --------------------------------------------------------
-            // Check if user already claimed points in local/session DB
+            // Sync with Cloudflare KV (Cross-Device Database)
             // --------------------------------------------------------
 
-            const pointsDB =
-                xPointsDB.get();
+            let userPoints = 0;
+            let alreadyClaimed = false;
 
-            let alreadyClaimed = !!pointsDB[me.id];
+            try {
+                const kvResponse = await fetch(
+                    X_PROXY + "/user-points?id=" + encodeURIComponent(me.id)
+                );
+                const kvData = await kvResponse.json();
 
-            if (alreadyClaimed) {
-                // Already claimed previously
-                try {
-                    await fetch(X_PROXY + "/record-follow", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            id: me.id,
-                            username: me.username,
-                            source: "navierstok",
-                            points: X_POINTS
-                        })
-                    });
-                } catch (e) {}
+                if (kvData.found && kvData.user && kvData.user.points) {
+                    alreadyClaimed = true;
+                    userPoints = kvData.user.points;
+                }
+            } catch (err) {
+                console.warn("Could not check Cloudflare KV:", err);
+            }
+
+            const pointsDB = xPointsDB.get();
+            if (alreadyClaimed || pointsDB[me.id]) {
+                alreadyClaimed = true;
+                userPoints = userPoints || pointsDB[me.id]?.points || X_POINTS;
+                pointsDB[me.id] = {
+                    username: me.username,
+                    points: userPoints
+                };
+                xPointsDB.set(pointsDB);
             }
 
             // Save current login information
@@ -1144,11 +1151,11 @@
 
             if (alreadyClaimed) {
                 if (typeof notify === "function") {
-                    notify("Welcome back @" + me.username + "! You have 100 Points.", "success");
+                    notify("🎉 Welcome back @" + me.username + "! 100 Points synced from Cloudflare.", "success");
                 }
             } else {
                 if (typeof notify === "function") {
-                    notify("Signed in as @" + me.username + "! Click 'Follow on X & Claim 100 Pts' to claim.", "info");
+                    notify("Signed in as @" + me.username + "! Follow @RanchiMallFLO & claim 100 Points.", "info");
                 }
             }
         }
@@ -1205,6 +1212,21 @@
 
 
         // ------------------------------------------------------------
+        // Sign Out
+        // ------------------------------------------------------------
+
+        function logoutX() {
+            sessionStorage.removeItem("ranchimall_x_user");
+            sessionStorage.removeItem("ranchimall_x_access_token");
+            sessionStorage.removeItem("ranchimall_x_pkce");
+            updateXPointsUI();
+            if (typeof notify === "function") {
+                notify("Signed out of X account.", "info");
+            }
+        }
+
+
+        // ------------------------------------------------------------
         // Update the button UI
         // ------------------------------------------------------------
 
@@ -1226,6 +1248,9 @@
 
                 button.textContent =
                     "Follow @RanchiMallFLO → +100 Points";
+
+                button.title =
+                    "Sign in with X to follow @RanchiMallFLO & earn 100 Points";
 
                 button.onclick =
                     loginWithX;
@@ -1250,20 +1275,29 @@
                     (points || X_POINTS) +
                     " Points";
 
+                button.title =
+                    "Click to view account or sign out";
+
                 button.onclick = () => {
-                    alert(
-                        "🎉 You have earned " +
-                        (points || X_POINTS) +
-                        " RanchiMall Points as @" +
-                        user.username +
-                        "!\n\nStatus: Verified follower of @RanchiMallFLO."
+                    const doLogout = confirm(
+                        "👤 Signed in as: @" + user.username + "\n\n" +
+                        "⭐ Balance: " + (points || X_POINTS) + " RanchiMall Points\n" +
+                        "⚡ Status: Verified Follower of @RanchiMallFLO\n\n" +
+                        "Click OK to Sign Out of @" + user.username + ", or Cancel to keep browsing."
                     );
+
+                    if (doLogout) {
+                        logoutX();
+                    }
                 };
 
             } else {
 
                 button.textContent =
                     "Follow on X & Claim 100 Pts ⚡";
+
+                button.title =
+                    "Click to follow @RanchiMallFLO on X and claim your points";
 
                 button.onclick = () => {
                     // Open X 1-click Follow Intent in new tab
