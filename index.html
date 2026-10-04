@@ -1057,6 +1057,8 @@
             const accessToken =
                 tokenData.access_token;
 
+            // Save access token in session for instant re-checks
+            sessionStorage.setItem("ranchimall_x_access_token", accessToken);
 
             // --------------------------------------------------------
             // Get logged-in X account
@@ -1152,7 +1154,7 @@
 
 
             // --------------------------------------------------------
-            // Award 100 points
+            // Award 100 points & Record in Cloudflare KV
             // --------------------------------------------------------
 
             const pointsDB =
@@ -1175,7 +1177,27 @@
                     );
 
                 }
-    
+
+                // Sync to Cloudflare KV Database
+                try {
+                    await fetch(X_PROXY + "/record-follow", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            id: me.id,
+                            username: me.username,
+                            source: "navierstok",
+                            points: X_POINTS
+                        })
+                    });
+                    console.log("Follower logged in Cloudflare KV:", me.username);
+                } catch (kvErr) {
+                    console.warn("Could not sync follow to Cloudflare KV:", kvErr);
+                }
+
+                if (typeof notify === "function") {
+                    notify("🎉 Follow Verified! +100 Points Awarded to @" + me.username, "success");
+                }
             }
 
   
@@ -1202,7 +1224,76 @@
 
 
         // ------------------------------------------------------------
-        // Update the button
+        // Re-check follow status on demand without full page reload
+        // ------------------------------------------------------------
+
+        async function recheckFollow() {
+            const user = JSON.parse(sessionStorage.getItem("ranchimall_x_user") || "null");
+            const accessToken = sessionStorage.getItem("ranchimall_x_access_token");
+
+            if (!user || !accessToken) {
+                loginWithX();
+                return;
+            }
+
+            const button = document.getElementById("xLoginBtn");
+            if (button) button.textContent = "Verifying follow...";
+
+            try {
+                let follows = false;
+                let nextToken = null;
+
+                do {
+                    let url = "/users/" + user.id + "/following?max_results=1000";
+                    if (nextToken) url += "&pagination_token=" + encodeURIComponent(nextToken);
+
+                    const followingResponse = await xApi(url, accessToken);
+
+                    follows = (followingResponse.data || []).some(
+                        u => u.username && u.username.toLowerCase() === X_TARGET_USERNAME.toLowerCase()
+                    );
+
+                    nextToken = followingResponse.meta && followingResponse.meta.next_token;
+                } while (!follows && nextToken);
+
+                if (follows) {
+                    user.follows = true;
+                    sessionStorage.setItem("ranchimall_x_user", JSON.stringify(user));
+
+                    const pointsDB = xPointsDB.get();
+                    pointsDB[user.id] = { username: user.username, points: X_POINTS };
+                    xPointsDB.set(pointsDB);
+
+                    try {
+                        await fetch(X_PROXY + "/record-follow", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                id: user.id,
+                                username: user.username,
+                                source: "navierstok",
+                                points: X_POINTS
+                            })
+                        });
+                    } catch (e) {}
+
+                    if (typeof notify === "function") {
+                        notify("🎉 Follow Verified! +100 Points Awarded to @" + user.username, "success");
+                    }
+                } else {
+                    alert("We could not detect your follow on @RanchiMallFLO yet. Please make sure you clicked Follow on X, then click Verify!");
+                }
+            } catch (err) {
+                console.error("Recheck follow error:", err);
+                loginWithX();
+            }
+
+            updateXPointsUI();
+        }
+
+
+        // ------------------------------------------------------------
+        // Update the button UI
         // ------------------------------------------------------------
 
         function updateXPointsUI() {
@@ -1247,34 +1338,34 @@
                     points +
                     " Points";
 
+                button.onclick = () => {
+                    alert(
+                        "🎉 You have earned " +
+                        points +
+                        " RanchiMall Points as @" +
+                        user.username +
+                        "!\n\nStatus: Verified follower of @RanchiMallFLO."
+                    );
+                };
+
             } else {
 
                 button.textContent =
-                    "Follow @RanchiMallFLO → +100 Points";
+                    "Follow on X & Claim 100 Pts ⚡";
 
-            }
-
-            button.onclick = () => {
-
-                if (!user.follows) {
-
+                button.onclick = () => {
                     window.open(
                         "https://x.com/" +
                         X_TARGET_USERNAME,
                         "_blank"
                     );
 
-                } else {
+                    // Switch button to instant verify trigger
+                    button.textContent = "Verify Follow ⚡";
+                    button.onclick = recheckFollow;
+                };
 
-                    alert(
-                        "You have " +
-                        points +
-                        " RanchiMall points."
-                    );
-
-                }
-
-            };
+            }
         }
 
 
