@@ -1078,25 +1078,24 @@
 
 
             // --------------------------------------------------------
-            // Find RanchiMallFLO
+            // Find RanchiMallFLO (ID lookup with username fallback)
             // --------------------------------------------------------
 
-            const targetResponse =
-                await xApi(
-                    "/users/by/username/" +
-                    X_TARGET_USERNAME,
-                    accessToken
-                );
+            let targetId = null;
+            try {
+                const targetResponse =
+                    await xApi(
+                        "/users/by/username/" +
+                        X_TARGET_USERNAME,
+                        accessToken
+                    );
 
-            const target =
-                targetResponse.data;
-
-            if (!target) {
-                throw new Error(
-                    "Could not find @RanchiMallFLO."
-                );
+                if (targetResponse && targetResponse.data) {
+                    targetId = targetResponse.data.id;
+                }
+            } catch (err) {
+                console.warn("Could not pre-fetch @RanchiMallFLO ID:", err);
             }
-
 
             // --------------------------------------------------------
             // Check following
@@ -1140,7 +1139,10 @@
 
                 follows =
                     (followingResponse.data || [])
-                        .some(user => user.id === target.id);
+                        .some(user => 
+                            (targetId && user.id === targetId) ||
+                            (user.username && user.username.toLowerCase() === X_TARGET_USERNAME.toLowerCase())
+                        );
 
                 nextToken =
                     followingResponse.meta &&
