@@ -59,6 +59,37 @@
                     <button type="button" id="xLoginBtn" class="x-points-btn interact">
                         Follow @RanchiMallFLO → +100 Points
                     </button>
+                    <!-- Account Popover Card -->
+                    <div id="xUserPopover" class="x-user-popover" style="display: none;">
+                        <div class="x-popover-user-row">
+                            <div class="x-popover-avatar">
+                                <svg class="icon" viewBox="0 0 24 24" style="width: 1.1rem; height: 1.1rem;">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                </svg>
+                            </div>
+                            <div class="x-popover-user-info">
+                                <span class="x-popover-username" id="xPopoverUsername">@username</span>
+                                <span class="x-popover-badge">✓ Verified Follower</span>
+                            </div>
+                        </div>
+                        <div class="x-popover-balance-card">
+                            <div class="x-popover-balance-title">RanchiMall Reward Balance</div>
+                            <div class="x-popover-balance-val">
+                                <span>⭐</span>
+                                <span id="xPopoverPoints">100</span>
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-color);">Points</span>
+                            </div>
+                        </div>
+                        <div class="x-popover-actions">
+                            <button type="button" class="x-popover-signout-btn" onclick="logoutX()">
+                                <svg viewBox="0 0 24 24" class="icon" style="width: 0.85rem; height: 0.85rem;">
+                                    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                                </svg>
+                                Sign Out
+                            </button>
+                            <button type="button" class="x-popover-close-btn" onclick="toggleXPopover(false)">Close</button>
+                        </div>
+                    </div>
                 </div>
                 <theme-toggle></theme-toggle>
             </div>
@@ -1151,7 +1182,7 @@
 
             if (alreadyClaimed) {
                 if (typeof notify === "function") {
-                    notify("🎉 Welcome back @" + me.username + "! 100 Points synced from Cloudflare.", "success");
+                    notify("🎉 Welcome back @" + me.username + "! 100 Points synced");
                 }
             } else {
                 if (typeof notify === "function") {
@@ -1212,10 +1243,50 @@
 
 
         // ------------------------------------------------------------
+        // Account Popover Dropdown Toggle
+        // ------------------------------------------------------------
+
+        function toggleXPopover(show) {
+            const popover = document.getElementById("xUserPopover");
+            const button = document.getElementById("xLoginBtn");
+            if (!popover) return;
+
+            const isVisible = popover.style.display === "flex";
+            const nextState = typeof show === "boolean" ? show : !isVisible;
+
+            if (nextState) {
+                const user = JSON.parse(sessionStorage.getItem("ranchimall_x_user") || "null");
+                const pointsDB = xPointsDB.get();
+                const points = user ? (pointsDB[user.id]?.points || X_POINTS) : X_POINTS;
+
+                const uEl = document.getElementById("xPopoverUsername");
+                const pEl = document.getElementById("xPopoverPoints");
+                if (uEl && user) uEl.textContent = "@" + user.username;
+                if (pEl) pEl.textContent = points;
+
+                popover.style.display = "flex";
+                if (button) button.classList.add("active-popover");
+            } else {
+                popover.style.display = "none";
+                if (button) button.classList.remove("active-popover");
+            }
+        }
+
+        // Close popover when clicking anywhere outside
+        document.addEventListener("click", (e) => {
+            const header = document.querySelector(".x-points-header");
+            if (header && !header.contains(e.target)) {
+                toggleXPopover(false);
+            }
+        });
+
+
+        // ------------------------------------------------------------
         // Sign Out
         // ------------------------------------------------------------
 
         function logoutX() {
+            toggleXPopover(false);
             sessionStorage.removeItem("ranchimall_x_user");
             sessionStorage.removeItem("ranchimall_x_access_token");
             sessionStorage.removeItem("ranchimall_x_pkce");
@@ -1255,6 +1326,7 @@
                 button.onclick =
                     loginWithX;
 
+                toggleXPopover(false);
                 return;
             }
 
@@ -1276,19 +1348,11 @@
                     " Points";
 
                 button.title =
-                    "Click to view account or sign out";
+                    "Click to view account & points details";
 
-                button.onclick = () => {
-                    const doLogout = confirm(
-                        "👤 Signed in as: @" + user.username + "\n\n" +
-                        "⭐ Balance: " + (points || X_POINTS) + " RanchiMall Points\n" +
-                        "⚡ Status: Verified Follower of @RanchiMallFLO\n\n" +
-                        "Click OK to Sign Out of @" + user.username + ", or Cancel to keep browsing."
-                    );
-
-                    if (doLogout) {
-                        logoutX();
-                    }
+                button.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleXPopover();
                 };
 
             } else {
