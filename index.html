@@ -55,6 +55,11 @@
                         </svg>
                     </a>
                 </div>
+                <div class="x-points-header">
+                    <button type="button" id="xLoginBtn" class="social-icon-btn interact">
+                        Follow @RanchiMallFLO → +100 Points
+                    </button>
+                </div>
                 <theme-toggle></theme-toggle>
             </div>
         </div>
@@ -876,5 +881,463 @@
             fetchLivePrices();
         });
     </script>
+
+    <script>
+        // ============================================================
+        // X FOLLOW → 100 POINTS
+        // ============================================================
+
+        const X_CLIENT_ID = "eGM2X1hYWVBWVGc3QUVMSWNMZ0Y6MTpjaQ";
+        const X_PROXY = "https://xauth.ranchimallfze.workers.dev";
+        const X_TARGET_USERNAME = "RanchiMallFLO";
+        const X_POINTS = 100;
+
+        const X_REDIRECT_URI =
+            location.origin + location.pathname;
+
+        const X_SCOPES =
+            "tweet.read users.read follows.read";
+
+
+        // ------------------------------------------------------------
+        // Small helpers
+        // ------------------------------------------------------------
+
+        function xB64Url(buffer) {
+            return btoa(
+                String.fromCharCode(...new Uint8Array(buffer))
+            )
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, "");
+        }
+
+        function xRandomBytes(length) {
+            return xB64Url(
+                crypto.getRandomValues(new Uint8Array(length))
+            );
+        }
+
+
+        // ------------------------------------------------------------
+        // Browser points storage
+        // ------------------------------------------------------------
+
+        const xPointsDB = {
+            get() {
+                return JSON.parse(
+                    localStorage.getItem("ranchimall_x_points") || "{}"
+                );
+            },
+
+            set(value) {
+                localStorage.setItem(
+                    "ranchimall_x_points",
+                    JSON.stringify(value)
+                );
+            }
+        };
+
+
+        // ------------------------------------------------------------
+        // Start X Login
+        // ------------------------------------------------------------
+
+        async function loginWithX() {
+
+            const verifier = xRandomBytes(32);
+            const state = xRandomBytes(16);
+
+            const challenge = xB64Url(
+                await crypto.subtle.digest(
+                    "SHA-256",
+                    new TextEncoder().encode(verifier)
+                )
+            );
+
+            sessionStorage.setItem(
+                "ranchimall_x_pkce",
+                JSON.stringify({
+                    verifier,
+                    state
+                })
+            );
+
+            const params = new URLSearchParams({
+                response_type: "code",
+                client_id: X_CLIENT_ID,
+                redirect_uri: X_REDIRECT_URI,
+                scope: X_SCOPES,
+                state,
+                code_challenge: challenge,
+                code_challenge_method: "S256"
+            });
+
+            window.location.href =
+                "https://x.com/i/oauth2/authorize?" + params.toString();
+        }
+
+
+        // ------------------------------------------------------------
+        // Call X through Cloudflare Worker
+        // ------------------------------------------------------------
+
+        async function xApi(path, accessToken) {
+
+            const response = await fetch(
+                X_PROXY + "/2" + path,
+                {
+                    headers: {
+                        Authorization:
+                            "Bearer " + accessToken
+                    }
+                }
+            );
+
+            return response.json();
+        }
+
+
+        // ------------------------------------------------------------
+        // Handle OAuth callback
+        // ------------------------------------------------------------
+
+        async function handleXCallback(code, returnedState) {
+
+            const saved = JSON.parse(
+                sessionStorage.getItem("ranchimall_x_pkce") || "null"
+            );
+
+            if (!saved) {
+                throw new Error("X login session expired. Please try again.");
+            }
+
+            if (saved.state !== returnedState) {
+                throw new Error("Invalid OAuth state.");
+            }
+
+            sessionStorage.removeItem("ranchimall_x_pkce");
+
+
+            // Exchange authorization code for access token
+            const tokenResponse = await fetch(
+                X_PROXY + "/2/oauth2/token",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body: new URLSearchParams({
+                        grant_type: "authorization_code",
+                        client_id: X_CLIENT_ID,
+                        code: code,
+                        redirect_uri: X_REDIRECT_URI,
+                        code_verifier: saved.verifier
+                    })
+                }
+            );
+
+            const tokenData = await tokenResponse.json();
+
+            if (!tokenData.access_token) {
+
+                console.error(
+                    "X token response:",
+                    tokenData
+                );
+
+                throw new Error(
+                    "Could not authenticate with X."
+                );
+            }
+
+            const accessToken =
+                tokenData.access_token;
+
+
+            // --------------------------------------------------------
+            // Get logged-in X account
+            // --------------------------------------------------------
+
+            const meResponse =
+                await xApi(
+                    "/users/me",
+                    accessToken
+                );
+
+            const me = meResponse.data;
+
+            if (!me) {
+                throw new Error(
+                    "Could not identify your X account."
+                );
+            }
+
+
+            // --------------------------------------------------------
+            // Find RanchiMallFLO
+            // --------------------------------------------------------
+
+            const targetResponse =
+                await xApi(
+                    "/users/by/username/" +
+                    X_TARGET_USERNAME,
+                    accessToken
+                );
+
+            const target =
+                targetResponse.data;
+
+            if (!target) {
+                throw new Error(
+                    "Could not find @RanchiMallFLO."
+                );
+            }
+
+
+            // --------------------------------------------------------
+            // Check following
+            // --------------------------------------------------------
+
+            let follows = false;
+            let nextToken = null;
+
+            do {
+
+                let url =
+                    "/users/" +
+                    me.id +
+                    "/following?max_results=1000";
+
+                if (nextToken) {
+                    url +=
+                        "&pagination_token=" +
+                        encodeURIComponent(nextToken);
+                }
+
+                const followingResponse =
+                    await xApi(
+                        url,
+                        accessToken
+                    );
+
+                if (
+                    !followingResponse.data &&
+                    followingResponse.errors
+                ) {
+                    console.error(
+                        "X follow lookup:",
+                        followingResponse
+                    );
+
+                    throw new Error(
+                        "X could not verify your following list. Check your API access."
+                    );
+                }
+
+                follows =
+                    (followingResponse.data || [])
+                        .some(user => user.id === target.id);
+
+                nextToken =
+                    followingResponse.meta &&
+                    followingResponse.meta.next_token;
+
+            } while (!follows && nextToken);
+
+
+            // --------------------------------------------------------
+            // Award 100 points
+            // --------------------------------------------------------
+
+            const pointsDB =
+                xPointsDB.get();
+
+            if (follows) {
+
+                if (!pointsDB[me.id]) {
+
+                    pointsDB[me.id] = {
+                        username: me.username,
+                        points: X_POINTS
+                    };
+
+                    xPointsDB.set(pointsDB);
+
+                    console.log(
+                        "Awarded 100 points to:",
+                        me.username
+                    );
+
+                }
+    
+            }
+
+  
+            // Save current login information
+            sessionStorage.setItem(
+                "ranchimall_x_user",
+                JSON.stringify({
+                    id: me.id,
+                    username: me.username,
+                    follows: follows
+                })
+            );
+
+
+            // Remove ?code=... from browser URL
+            window.history.replaceState(
+                {},
+                document.title,
+                X_REDIRECT_URI
+            );
+
+            updateXPointsUI();
+        }
+
+
+        // ------------------------------------------------------------
+        // Update the button
+        // ------------------------------------------------------------
+
+        function updateXPointsUI() {
+
+            const button =
+                document.getElementById("xLoginBtn");
+
+            if (!button) return;
+
+            const user =
+                JSON.parse(
+                    sessionStorage.getItem(
+                        "ranchimall_x_user"
+                    ) || "null"
+                );
+
+            if (!user) {
+
+                button.textContent =
+                    "Follow @RanchiMallFLO → +100 Points";
+
+                button.onclick =
+                    loginWithX;
+
+                return;
+            }
+
+
+            const pointsDB =
+                xPointsDB.get();
+
+            const points =
+                pointsDB[user.id]?.points || 0;
+
+
+            if (user.follows) {
+
+                button.textContent =
+                    "✓ @" +
+                    user.username +
+                    " — " +
+                    points +
+                    " Points";
+
+            } else {
+
+                button.textContent =
+                    "Follow @RanchiMallFLO → +100 Points";
+
+            }
+
+            button.onclick = () => {
+
+                if (!user.follows) {
+
+                    window.open(
+                        "https://x.com/" +
+                        X_TARGET_USERNAME,
+                        "_blank"
+                    );
+
+                } else {
+
+                    alert(
+                        "You have " +
+                        points +
+                        " RanchiMall points."
+                    );
+
+                }
+
+            };
+        }
+
+
+        // ------------------------------------------------------------
+        // Process OAuth callback
+        // ------------------------------------------------------------
+
+        (async function () {
+
+            const params =
+                new URLSearchParams(
+                    window.location.search
+                );
+
+            const code =
+                params.get("code");
+
+            const state =
+                params.get("state");
+
+            const error =
+                params.get("error");
+
+
+            try {
+
+                if (error) {
+
+                    console.error(
+                        "X OAuth error:",
+                        error
+                    );
+
+                } else if (code) {
+
+                    await handleXCallback(
+                        code,
+                        state
+                    );
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "X authentication error:",
+                    error
+                );
+
+                alert(
+                    "X login failed: " +
+                    error.message
+                );
+
+                window.history.replaceState(
+                    {},
+                    document.title,
+                    X_REDIRECT_URI
+                );
+            }
+
+            updateXPointsUI();
+
+        })();
+
+    </script>
+
 </body>
 </html>
