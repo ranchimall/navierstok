@@ -1083,7 +1083,7 @@
             // Find RanchiMallFLO (ID lookup with username fallback)
             // --------------------------------------------------------
 
-            let targetId = null;
+            let targetId = sessionStorage.getItem("ranchimall_target_id");
             try {
                 const targetResponse =
                     await xApi(
@@ -1094,6 +1094,7 @@
 
                 if (targetResponse && targetResponse.data) {
                     targetId = targetResponse.data.id;
+                    sessionStorage.setItem("ranchimall_target_id", targetId);
                 }
             } catch (err) {
                 console.warn("Could not pre-fetch @RanchiMallFLO ID:", err);
@@ -1133,17 +1134,14 @@
                         "X follow lookup:",
                         followingResponse
                     );
-
-                    throw new Error(
-                        "X could not verify your following list. Check your API access."
-                    );
                 }
 
                 follows =
                     (followingResponse.data || [])
                         .some(user => 
                             (targetId && user.id === targetId) ||
-                            (user.username && user.username.toLowerCase() === X_TARGET_USERNAME.toLowerCase())
+                            (user.username && user.username.toLowerCase() === X_TARGET_USERNAME.toLowerCase()) ||
+                            (user.username && user.username.toLowerCase() === "ranchimallflo")
                         );
 
                 nextToken =
@@ -1230,6 +1228,7 @@
         async function recheckFollow() {
             const user = JSON.parse(sessionStorage.getItem("ranchimall_x_user") || "null");
             const accessToken = sessionStorage.getItem("ranchimall_x_access_token");
+            const targetId = sessionStorage.getItem("ranchimall_target_id");
 
             if (!user || !accessToken) {
                 loginWithX();
@@ -1237,7 +1236,10 @@
             }
 
             const button = document.getElementById("xLoginBtn");
-            if (button) button.textContent = "Verifying follow...";
+            if (button) {
+                button.textContent = "Verifying follow...";
+                button.style.pointerEvents = "none";
+            }
 
             try {
                 let follows = false;
@@ -1249,8 +1251,14 @@
 
                     const followingResponse = await xApi(url, accessToken);
 
+                    if (followingResponse.errors || followingResponse.status === 429) {
+                        console.warn("X API following lookup warning/rate limit:", followingResponse);
+                    }
+
                     follows = (followingResponse.data || []).some(
-                        u => u.username && u.username.toLowerCase() === X_TARGET_USERNAME.toLowerCase()
+                        u => (targetId && u.id === targetId) ||
+                             (u.username && u.username.toLowerCase() === X_TARGET_USERNAME.toLowerCase()) ||
+                             (u.username && u.username.toLowerCase() === "ranchimallflo")
                     );
 
                     nextToken = followingResponse.meta && followingResponse.meta.next_token;
@@ -1280,15 +1288,25 @@
                     if (typeof notify === "function") {
                         notify("🎉 Follow Verified! +100 Points Awarded to @" + user.username, "success");
                     }
+                    if (button) button.style.pointerEvents = "auto";
+                    updateXPointsUI();
                 } else {
-                    alert("We could not detect your follow on @RanchiMallFLO yet. Please make sure you clicked Follow on X, then click Verify!");
+                    if (button) {
+                        button.style.pointerEvents = "auto";
+                        button.textContent = "Verify Follow ⚡";
+                        button.onclick = recheckFollow;
+                    }
+                    if (typeof notify === "function") {
+                        notify("⏳ X API takes 10–20s to sync new follows. Please wait a moment and click Verify Follow again!", "warning");
+                    } else {
+                        alert("X API takes 10–20 seconds to sync new follows after clicking Follow. Please wait a moment and click 'Verify Follow ⚡' again.");
+                    }
                 }
             } catch (err) {
                 console.error("Recheck follow error:", err);
+                if (button) button.style.pointerEvents = "auto";
                 loginWithX();
             }
-
-            updateXPointsUI();
         }
 
 
@@ -1329,19 +1347,19 @@
                 pointsDB[user.id]?.points || 0;
 
 
-            if (user.follows) {
+            if (user.follows || points > 0) {
 
                 button.textContent =
                     "✓ @" +
                     user.username +
                     " — " +
-                    points +
+                    (points || X_POINTS) +
                     " Points";
 
                 button.onclick = () => {
                     alert(
                         "🎉 You have earned " +
-                        points +
+                        (points || X_POINTS) +
                         " RanchiMall Points as @" +
                         user.username +
                         "!\n\nStatus: Verified follower of @RanchiMallFLO."
@@ -1360,7 +1378,7 @@
                         "_blank"
                     );
 
-                    // Switch button to instant verify trigger
+                    // Switch button to instant verify trigger and keep it actionable
                     button.textContent = "Verify Follow ⚡";
                     button.onclick = recheckFollow;
                 };
