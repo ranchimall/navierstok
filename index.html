@@ -1097,86 +1097,17 @@
                     sessionStorage.setItem("ranchimall_target_id", targetId);
                 }
             } catch (err) {
-                console.warn("Could not pre-fetch @RanchiMallFLO ID:", err);
-            }
-
             // --------------------------------------------------------
-            // Check following
-            // --------------------------------------------------------
-
-            let follows = false;
-            let nextToken = null;
-
-            do {
-
-                let url =
-                    "/users/" +
-                    me.id +
-                    "/following?max_results=1000";
-
-                if (nextToken) {
-                    url +=
-                        "&pagination_token=" +
-                        encodeURIComponent(nextToken);
-                }
-
-                const followingResponse =
-                    await xApi(
-                        url,
-                        accessToken
-                    );
-
-                if (
-                    !followingResponse.data &&
-                    followingResponse.errors
-                ) {
-                    console.error(
-                        "X follow lookup:",
-                        followingResponse
-                    );
-                }
-
-                follows =
-                    (followingResponse.data || [])
-                        .some(user => 
-                            (targetId && user.id === targetId) ||
-                            (user.username && user.username.toLowerCase() === X_TARGET_USERNAME.toLowerCase()) ||
-                            (user.username && user.username.toLowerCase() === "ranchimallflo")
-                        );
-
-                nextToken =
-                    followingResponse.meta &&
-                    followingResponse.meta.next_token;
-
-            } while (!follows && nextToken);
-
-
-            // --------------------------------------------------------
-            // Award 100 points & Record in Cloudflare KV
+            // Check if user already claimed points in local/session DB
             // --------------------------------------------------------
 
             const pointsDB =
                 xPointsDB.get();
 
-            if (follows) {
+            let alreadyClaimed = !!pointsDB[me.id];
 
-                if (!pointsDB[me.id]) {
-
-                    pointsDB[me.id] = {
-                        username: me.username,
-                        points: X_POINTS
-                    };
-
-                    xPointsDB.set(pointsDB);
-
-                    console.log(
-                        "Awarded 100 points to:",
-                        me.username
-                    );
-
-                }
-
-                // Sync to Cloudflare KV Database
+            if (alreadyClaimed) {
+                // Already claimed previously
                 try {
                     await fetch(X_PROXY + "/record-follow", {
                         method: "POST",
@@ -1188,27 +1119,18 @@
                             points: X_POINTS
                         })
                     });
-                    console.log("Follower logged in Cloudflare KV:", me.username);
-                } catch (kvErr) {
-                    console.warn("Could not sync follow to Cloudflare KV:", kvErr);
-                }
-
-                if (typeof notify === "function") {
-                    notify("🎉 Follow Verified! +100 Points Awarded to @" + me.username, "success");
-                }
+                } catch (e) {}
             }
 
-  
             // Save current login information
             sessionStorage.setItem(
                 "ranchimall_x_user",
                 JSON.stringify({
                     id: me.id,
                     username: me.username,
-                    follows: follows
+                    follows: alreadyClaimed
                 })
             );
-
 
             // Remove ?code=... from browser URL
             window.history.replaceState(
@@ -1218,95 +1140,66 @@
             );
 
             updateXPointsUI();
+
+            if (alreadyClaimed) {
+                if (typeof notify === "function") {
+                    notify("Welcome back @" + me.username + "! You have 100 Points.", "success");
+                }
+            } else {
+                if (typeof notify === "function") {
+                    notify("Signed in as @" + me.username + "! Click 'Follow on X & Claim 100 Pts' to claim.", "info");
+                }
+            }
         }
 
 
         // ------------------------------------------------------------
-        // Re-check follow status on demand without full page reload
+        // Claim 100 Points and record in Cloudflare KV
         // ------------------------------------------------------------
 
-        async function recheckFollow() {
+        async function claimPoints() {
             const user = JSON.parse(sessionStorage.getItem("ranchimall_x_user") || "null");
-            const accessToken = sessionStorage.getItem("ranchimall_x_access_token");
-            const targetId = sessionStorage.getItem("ranchimall_target_id");
 
-            if (!user || !accessToken) {
+            if (!user) {
                 loginWithX();
                 return;
             }
 
             const button = document.getElementById("xLoginBtn");
             if (button) {
-                button.textContent = "Verifying follow...";
+                button.textContent = "Claiming 100 Points...";
                 button.style.pointerEvents = "none";
             }
 
             try {
-                let follows = false;
-                let nextToken = null;
+                user.follows = true;
+                sessionStorage.setItem("ranchimall_x_user", JSON.stringify(user));
 
-                do {
-                    let url = "/users/" + user.id + "/following?max_results=1000";
-                    if (nextToken) url += "&pagination_token=" + encodeURIComponent(nextToken);
+                const pointsDB = xPointsDB.get();
+                pointsDB[user.id] = { username: user.username, points: X_POINTS };
+                xPointsDB.set(pointsDB);
 
-                    const followingResponse = await xApi(url, accessToken);
+                // Record directly in Cloudflare KV Database
+                await fetch(X_PROXY + "/record-follow", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        id: user.id,
+                        username: user.username,
+                        source: "navierstok",
+                        points: X_POINTS
+                    })
+                });
 
-                    if (followingResponse.errors || followingResponse.status === 429) {
-                        console.warn("X API following lookup warning/rate limit:", followingResponse);
-                    }
-
-                    follows = (followingResponse.data || []).some(
-                        u => (targetId && u.id === targetId) ||
-                             (u.username && u.username.toLowerCase() === X_TARGET_USERNAME.toLowerCase()) ||
-                             (u.username && u.username.toLowerCase() === "ranchimallflo")
-                    );
-
-                    nextToken = followingResponse.meta && followingResponse.meta.next_token;
-                } while (!follows && nextToken);
-
-                if (follows) {
-                    user.follows = true;
-                    sessionStorage.setItem("ranchimall_x_user", JSON.stringify(user));
-
-                    const pointsDB = xPointsDB.get();
-                    pointsDB[user.id] = { username: user.username, points: X_POINTS };
-                    xPointsDB.set(pointsDB);
-
-                    try {
-                        await fetch(X_PROXY + "/record-follow", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                id: user.id,
-                                username: user.username,
-                                source: "navierstok",
-                                points: X_POINTS
-                            })
-                        });
-                    } catch (e) {}
-
-                    if (typeof notify === "function") {
-                        notify("🎉 Follow Verified! +100 Points Awarded to @" + user.username, "success");
-                    }
-                    if (button) button.style.pointerEvents = "auto";
-                    updateXPointsUI();
-                } else {
-                    if (button) {
-                        button.style.pointerEvents = "auto";
-                        button.textContent = "Verify Follow ⚡";
-                        button.onclick = recheckFollow;
-                    }
-                    if (typeof notify === "function") {
-                        notify("⏳ X API takes 10–20s to sync new follows. Please wait a moment and click Verify Follow again!", "warning");
-                    } else {
-                        alert("X API takes 10–20 seconds to sync new follows after clicking Follow. Please wait a moment and click 'Verify Follow ⚡' again.");
-                    }
+                if (typeof notify === "function") {
+                    notify("🎉 100 Points Successfully Claimed by @" + user.username + "!", "success");
                 }
             } catch (err) {
-                console.error("Recheck follow error:", err);
-                if (button) button.style.pointerEvents = "auto";
-                loginWithX();
+                console.error("Claim points error:", err);
             }
+
+            if (button) button.style.pointerEvents = "auto";
+            updateXPointsUI();
         }
 
 
@@ -1372,15 +1265,16 @@
                     "Follow on X & Claim 100 Pts ⚡";
 
                 button.onclick = () => {
+                    // Open X 1-click Follow Intent in new tab
                     window.open(
-                        "https://x.com/" +
+                        "https://x.com/intent/follow?screen_name=" +
                         X_TARGET_USERNAME,
                         "_blank"
                     );
 
-                    // Switch button to instant verify trigger and keep it actionable
-                    button.textContent = "Verify Follow ⚡";
-                    button.onclick = recheckFollow;
+                    // Switch button to instant claim trigger
+                    button.textContent = "Claim 100 Points ⚡";
+                    button.onclick = claimPoints;
                 };
 
             }
