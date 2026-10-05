@@ -57,7 +57,7 @@
                 </div>
                 <div class="x-points-header">
                     <button type="button" id="xLoginBtn" class="x-points-btn interact">
-                        Follow @RanchiMallFLO → 100 Points
+                        Follow & Join → 200 Points
                     </button>
                     <!-- Account Popover Card -->
                     <div id="xUserPopover" class="x-user-popover" style="display: none;">
@@ -69,9 +69,11 @@
                             </div>
                             <div class="x-popover-user-info">
                                 <span class="x-popover-username" id="xPopoverUsername">@username</span>
-                                <span class="x-popover-badge">✓ Verified follower of @ranchimallflo</span>
+                                <span class="x-popover-badge" id="xPopoverBadge">Unified Rewards Account</span>
                             </div>
                         </div>
+
+                        <!-- Balance Card -->
                         <div class="x-popover-balance-card">
                             <div class="x-popover-balance-title">$NAVIERSTOK Reward Balance</div>
                             <div class="x-popover-balance-val">
@@ -80,6 +82,42 @@
                                 <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-color);">Points</span>
                             </div>
                         </div>
+
+                        <!-- Social Tasks Checklist -->
+                        <div class="x-popover-tasks">
+                            <!-- X Task -->
+                            <div class="x-popover-task-item" id="popoverTaskX">
+                                <div class="x-task-left">
+                                    <div class="x-task-icon-wrap x-icon">
+                                        <svg class="icon" viewBox="0 0 24 24" style="width: 0.95rem; height: 0.95rem;">
+                                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="x-task-meta">
+                                        <span class="x-task-name">Follow @ranchimallflo</span>
+                                        <span class="x-task-status" id="popoverXStatus">+100 Points</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="x-task-action-btn" id="popoverXBtn" onclick="handleTaskX()">Follow</button>
+                            </div>
+
+                            <!-- Telegram Task -->
+                            <div class="x-popover-task-item" id="popoverTaskTG">
+                                <div class="x-task-left">
+                                    <div class="x-task-icon-wrap tg-icon">
+                                        <svg class="icon" viewBox="0 0 24 24" style="width: 0.95rem; height: 0.95rem;">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="x-task-meta">
+                                        <span class="x-task-name">Join @RanchiMall</span>
+                                        <span class="x-task-status" id="popoverTGStatus">+100 Points</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="x-task-action-btn" id="popoverTGBtn" onclick="handleTaskTG()">Join</button>
+                            </div>
+                        </div>
+
                         <div class="x-popover-actions">
                             <button type="button" class="x-popover-signout-btn" onclick="logoutX()">
                                 <svg viewBox="0 0 24 24" class="icon" style="width: 0.85rem; height: 0.85rem;">
@@ -1129,44 +1167,49 @@
                 console.warn("Could not pre-fetch target ID:", err);
             }
             // --------------------------------------------------------
-            // Sync with Cloudflare KV (Cross-Device Database)
+            // Sync with Cloudflare KV (Unified Multi-Platform Account)
             // --------------------------------------------------------
 
-            let userPoints = 0;
-            let alreadyClaimed = false;
+            let unifiedAcc = null;
 
             try {
-                const kvResponse = await fetch(
-                    X_PROXY + "/user-points?id=" + encodeURIComponent(me.id)
-                );
-                const kvData = await kvResponse.json();
-
-                if (kvData.found && kvData.user && kvData.user.points) {
-                    alreadyClaimed = true;
-                    userPoints = kvData.user.points;
+                const claimResponse = await fetch(X_PROXY + "/claim-reward", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        platform: "x",
+                        user: {
+                            id: me.id,
+                            username: me.username
+                        },
+                        points: X_POINTS
+                    })
+                });
+                const claimData = await claimResponse.json();
+                if (claimData && claimData.account) {
+                    unifiedAcc = claimData.account;
                 }
             } catch (err) {
-                console.warn("Could not check Cloudflare KV:", err);
+                console.warn("Could not sync reward with Cloudflare KV:", err);
             }
 
-            const pointsDB = xPointsDB.get();
-            if (alreadyClaimed || pointsDB[me.id]) {
-                alreadyClaimed = true;
-                userPoints = userPoints || pointsDB[me.id]?.points || X_POINTS;
-                pointsDB[me.id] = {
-                    username: me.username,
-                    points: userPoints
+            if (!unifiedAcc) {
+                unifiedAcc = {
+                    accountId: "NS_x_" + me.id,
+                    x: { id: me.id, username: me.username, claimed: true, points: X_POINTS },
+                    telegram: { claimed: false, points: 0 },
+                    totalPoints: X_POINTS
                 };
-                xPointsDB.set(pointsDB);
             }
 
-            // Save current login information
+            // Save unified account to storage
+            sessionStorage.setItem("ranchimall_account", JSON.stringify(unifiedAcc));
             sessionStorage.setItem(
                 "ranchimall_x_user",
                 JSON.stringify({
                     id: me.id,
                     username: me.username,
-                    follows: alreadyClaimed
+                    follows: true
                 })
             );
 
@@ -1179,65 +1222,106 @@
 
             updateXPointsUI();
 
-            if (alreadyClaimed) {
-                if (typeof notify === "function") {
-                    notify("🎉 Welcome back @" + me.username + "! 100 Points synced");
-                }
-            } else {
-                if (typeof notify === "function") {
-                    notify("Signed in as @" + me.username + "! Follow RanchiMall on X & claim 100 Points.", "info");
-                }
+            if (typeof notify === "function") {
+                notify("🎉 Welcome @" + me.username + "! " + unifiedAcc.totalPoints + " NavierStok Points synced.", "success");
             }
         }
 
 
         // ------------------------------------------------------------
-        // Claim 100 Points and record in Cloudflare KV
+        // Unified Account State Helper
         // ------------------------------------------------------------
 
-        async function claimPoints() {
-            const user = JSON.parse(sessionStorage.getItem("ranchimall_x_user") || "null");
+        function getUnifiedAccount() {
+            return JSON.parse(
+                sessionStorage.getItem("ranchimall_account") ||
+                localStorage.getItem("ranchimall_account") ||
+                "null"
+            );
+        }
 
-            if (!user) {
+        function setUnifiedAccount(acc) {
+            sessionStorage.setItem("ranchimall_account", JSON.stringify(acc));
+            localStorage.setItem("ranchimall_account", JSON.stringify(acc));
+        }
+
+
+        // ------------------------------------------------------------
+        // Handle X Task in Popover
+        // ------------------------------------------------------------
+
+        function handleTaskX() {
+            const acc = getUnifiedAccount();
+            if (!acc || !acc.x || !acc.x.claimed) {
+                // Not yet connected with X
                 loginWithX();
+            } else {
+                window.open("https://x.com/intent/follow?screen_name=" + X_TARGET_USERNAME, "_blank");
+            }
+        }
+
+
+        // ------------------------------------------------------------
+        // Handle Telegram Task in Popover
+        // ------------------------------------------------------------
+
+        async function handleTaskTG() {
+            const acc = getUnifiedAccount();
+
+            // Open Telegram Group in new tab
+            window.open("https://t.me/RanchiMall", "_blank");
+
+            if (acc && acc.telegram && acc.telegram.claimed) {
                 return;
             }
 
-            const button = document.getElementById("xLoginBtn");
-            if (button) {
-                button.textContent = "Claiming 100 Points...";
-                button.style.pointerEvents = "none";
-            }
+            const tgInput = prompt("Enter your Telegram username (e.g. @yourname) to claim 100 Points:", "");
+            if (!tgInput) return;
+
+            const cleanHandle = tgInput.trim().replace(/^@/, "");
+            if (!cleanHandle) return;
+
+            const currentAccountId = acc ? acc.id || acc.accountId : null;
 
             try {
-                user.follows = true;
-                sessionStorage.setItem("ranchimall_x_user", JSON.stringify(user));
-
-                const pointsDB = xPointsDB.get();
-                pointsDB[user.id] = { username: user.username, points: X_POINTS };
-                xPointsDB.set(pointsDB);
-
-                // Record directly in Cloudflare KV Database
-                await fetch(X_PROXY + "/record-follow", {
+                const response = await fetch(X_PROXY + "/claim-reward", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        id: user.id,
-                        username: user.username,
-                        source: "navierstok",
-                        points: X_POINTS
+                        accountId: currentAccountId,
+                        platform: "telegram",
+                        user: {
+                            id: cleanHandle.toLowerCase(),
+                            username: cleanHandle
+                        },
+                        points: 100
                     })
                 });
 
-                if (typeof notify === "function") {
-                    notify("🎉 100 Points Successfully Claimed by @" + user.username + "!", "success");
+                const data = await response.json();
+                if (data && data.account) {
+                    setUnifiedAccount(data.account);
+                    updateXPointsUI();
+                    if (typeof notify === "function") {
+                        notify("🎉 Telegram Verified! +100 Points Awarded (Total: " + data.account.totalPoints + " Pts)", "success");
+                    }
                 }
-            } catch (err) {
-                console.error("Claim points error:", err);
+            } catch (e) {
+                console.error("Telegram claim error:", e);
+                // Local fallback
+                const fallbackAcc = acc || {
+                    accountId: "NS_tg_" + cleanHandle,
+                    x: { claimed: false, points: 0 },
+                    telegram: { id: cleanHandle, username: cleanHandle, claimed: true, points: 100 },
+                    totalPoints: 100
+                };
+                if (acc) {
+                    fallbackAcc.telegram = { id: cleanHandle, username: cleanHandle, claimed: true, points: 100 };
+                    fallbackAcc.totalPoints = (fallbackAcc.x?.points || 0) + 100;
+                }
+                setUnifiedAccount(fallbackAcc);
+                updateXPointsUI();
             }
-
-            if (button) button.style.pointerEvents = "auto";
-            updateXPointsUI();
         }
 
 
@@ -1254,14 +1338,40 @@
             const nextState = typeof show === "boolean" ? show : !isVisible;
 
             if (nextState) {
-                const user = JSON.parse(sessionStorage.getItem("ranchimall_x_user") || "null");
-                const pointsDB = xPointsDB.get();
-                const points = user ? (pointsDB[user.id]?.points || X_POINTS) : X_POINTS;
+                const acc = getUnifiedAccount();
+                const totalPoints = acc ? acc.totalPoints || 0 : 0;
+                const displayName = acc?.x?.username ? ("@" + acc.x.username) : (acc?.telegram?.username ? ("@" + acc.telegram.username) : "Guest");
 
                 const uEl = document.getElementById("xPopoverUsername");
                 const pEl = document.getElementById("xPopoverPoints");
-                if (uEl && user) uEl.textContent = "@" + user.username;
-                if (pEl) pEl.textContent = points;
+                if (uEl) uEl.textContent = displayName;
+                if (pEl) pEl.textContent = totalPoints;
+
+                // Render X Task Row
+                const xDone = acc?.x?.claimed;
+                const xStatusEl = document.getElementById("popoverXStatus");
+                const xBtnEl = document.getElementById("popoverXBtn");
+                if (xStatusEl) {
+                    xStatusEl.textContent = xDone ? ("✓ @" + acc.x.username + " (+100 Pts)") : "+100 Points";
+                    xStatusEl.className = "x-task-status" + (xDone ? " completed" : "");
+                }
+                if (xBtnEl) {
+                    xBtnEl.textContent = xDone ? "✓ Done" : "Follow";
+                    xBtnEl.className = "x-task-action-btn" + (xDone ? " done" : "");
+                }
+
+                // Render Telegram Task Row
+                const tgDone = acc?.telegram?.claimed;
+                const tgStatusEl = document.getElementById("popoverTGStatus");
+                const tgBtnEl = document.getElementById("popoverTGBtn");
+                if (tgStatusEl) {
+                    tgStatusEl.textContent = tgDone ? ("✓ @" + acc.telegram.username + " (+100 Pts)") : "+100 Points";
+                    tgStatusEl.className = "x-task-status" + (tgDone ? " completed" : "");
+                }
+                if (tgBtnEl) {
+                    tgBtnEl.textContent = tgDone ? "✓ Done" : "Join";
+                    tgBtnEl.className = "x-task-action-btn" + (tgDone ? " done" : "");
+                }
 
                 popover.style.display = "flex";
                 if (button) button.classList.add("active-popover");
@@ -1286,12 +1396,14 @@
 
         function logoutX() {
             toggleXPopover(false);
+            sessionStorage.removeItem("ranchimall_account");
+            localStorage.removeItem("ranchimall_account");
             sessionStorage.removeItem("ranchimall_x_user");
             sessionStorage.removeItem("ranchimall_x_access_token");
             sessionStorage.removeItem("ranchimall_x_pkce");
             updateXPointsUI();
             if (typeof notify === "function") {
-                notify("Signed out of X account.", "info");
+                notify("Signed out of rewards account.", "info");
             }
         }
 
@@ -1307,20 +1419,15 @@
 
             if (!button) return;
 
-            const user =
-                JSON.parse(
-                    sessionStorage.getItem(
-                        "ranchimall_x_user"
-                    ) || "null"
-                );
+            const acc = getUnifiedAccount();
 
-            if (!user) {
+            if (!acc || (!acc.x?.claimed && !acc.telegram?.claimed)) {
 
                 button.textContent =
-                    "Follow RanchiMall on X → 100 Points";
+                    "Follow & Join → 200 Points";
 
                 button.title =
-                    "Sign in with X to follow RanchiMall (@ranchimallflo) on X & earn 100 Points";
+                    "Connect X and Telegram to earn 200 NavierStok Points";
 
                 button.onclick =
                     loginWithX;
@@ -1329,53 +1436,23 @@
                 return;
             }
 
+            const totalPoints = acc.totalPoints || ((acc.x?.points || 0) + (acc.telegram?.points || 0));
+            const activeUser = acc.x?.username || acc.telegram?.username || "User";
 
-            const pointsDB =
-                xPointsDB.get();
+            button.textContent =
+                "✓ @" +
+                activeUser +
+                " — " +
+                totalPoints +
+                " Points";
 
-            const points =
-                pointsDB[user.id]?.points || 0;
+            button.title =
+                "Click to view account tasks & total points";
 
-
-            if (user.follows || points > 0) {
-
-                button.textContent =
-                    "✓ @" +
-                    user.username +
-                    " — " +
-                    (points || X_POINTS) +
-                    " Points";
-
-                button.title =
-                    "Click to view account & points details";
-
-                button.onclick = (e) => {
-                    e.stopPropagation();
-                    toggleXPopover();
-                };
-
-            } else {
-
-                button.textContent =
-                    "Follow on X & Claim 100 Pts ⚡";
-
-                button.title =
-                    "Click to follow RanchiMall on X and claim your points";
-
-                button.onclick = () => {
-                    // Open X 1-click Follow Intent in new tab
-                    window.open(
-                        "https://x.com/intent/follow?screen_name=" +
-                        X_TARGET_USERNAME,
-                        "_blank"
-                    );
-
-                    // Switch button to instant claim trigger
-                    button.textContent = "Claim 100 Points ⚡";
-                    button.onclick = claimPoints;
-                };
-
-            }
+            button.onclick = (e) => {
+                e.stopPropagation();
+                toggleXPopover();
+            };
         }
 
 

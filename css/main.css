@@ -385,6 +385,107 @@ sm-button {
   gap: 0.4rem;
 }
 
+/* Social Tasks Checklist */
+.x-popover-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.x-popover-task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: rgba(var(--background-color), 1);
+  border: 1px solid rgba(var(--text-color), 0.08);
+  border-radius: 0.5rem;
+}
+
+.x-task-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.x-task-icon-wrap {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.x-task-icon-wrap.x-icon {
+  background: rgba(0, 119, 254, 0.1);
+  color: #0077fe;
+}
+
+.x-task-icon-wrap.tg-icon {
+  background: rgba(34, 158, 217, 0.12);
+  color: #229ed9;
+}
+
+.x-task-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.x-task-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(var(--text-color), 1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.x-task-status {
+  font-size: 0.66rem;
+  color: rgba(var(--text-color), 0.65);
+}
+
+.x-task-status.completed {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.x-task-action-btn {
+  height: 1.65rem;
+  padding: 0 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 0.35rem;
+  background: var(--accent-color);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.x-task-action-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.x-task-action-btn.done {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  cursor: default;
+  transform: none;
+}
+
 .x-popover-actions {
   display: flex;
   width: 100%;
