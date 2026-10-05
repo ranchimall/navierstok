@@ -114,7 +114,10 @@
                                         <span class="x-task-status" id="popoverTGStatus">+100 Points</span>
                                     </div>
                                 </div>
-                                <button type="button" class="x-task-action-btn" id="popoverTGBtn" onclick="handleTaskTG()">Join</button>
+                                <div class="x-task-action-wrap" id="tgActionWrap">
+                                    <div id="tgWidgetSlot"></div>
+                                    <button type="button" class="x-task-action-btn" id="popoverTGBtn" onclick="handleTaskTG()">Join</button>
+                                </div>
                             </div>
                         </div>
 
@@ -1263,50 +1266,23 @@
 
 
         // ------------------------------------------------------------
-        // Handle Telegram Task via Bot Widget & Automated Verification
+        // Official Telegram Widget Callback
         // ------------------------------------------------------------
 
-        async function handleTaskTG() {
-            const acc = getUnifiedAccount();
+        window.onTelegramAuth = async function(tgUser) {
+            console.log("Telegram Auth received:", tgUser);
+            if (!tgUser || !tgUser.id) return;
+            await verifyTelegramUser(tgUser);
+        };
 
-            if (acc && acc.telegram && acc.telegram.claimed) {
-                window.open("https://t.me/RanchiMall", "_blank");
-                return;
-            }
-
-            // Open Telegram Group
-            window.open("https://t.me/RanchiMall", "_blank");
-
-            // Check if Telegram Login Widget is available, or use window popup auth
-            if (window.Telegram && window.Telegram.Login) {
-                window.Telegram.Login.auth(
-                    { bot_id: "7891234567", request_access: true },
-                    async (tgUser) => {
-                        if (tgUser) {
-                            await verifyTelegramUser(tgUser);
-                        }
-                    }
-                );
-            } else {
-                // Interactive prompt fallback if widget popup is not active
-                setTimeout(async () => {
-                    const tgHandle = prompt("Enter your Telegram username (without @) to verify membership:", "");
-                    if (!tgHandle) return;
-
-                    const clean = tgHandle.trim().replace(/^@/, "");
-                    if (!clean) return;
-
-                    await verifyTelegramUser({ id: clean.toLowerCase(), username: clean });
-                }, 800);
-            }
-        }
-
-        // Send Telegram info to Cloudflare Worker to verify group membership
+        // Send Telegram payload to Cloudflare Worker to verify group membership
         async function verifyTelegramUser(tgUser) {
             const acc = getUnifiedAccount();
             const currentAccountId = acc ? (acc.id || acc.accountId) : null;
-            const tgBtn = document.getElementById("popoverTGBtn");
-            if (tgBtn) tgBtn.textContent = "Verifying...";
+            const tgStatusEl = document.getElementById("popoverTGStatus");
+            const tgActionWrap = document.getElementById("tgActionWrap");
+
+            if (tgStatusEl) tgStatusEl.textContent = "Verifying membership...";
 
             try {
                 const response = await fetch(X_PROXY + "/verify-telegram", {
@@ -1328,17 +1304,23 @@
                         notify("🎉 Telegram Verified! +100 Points Awarded (Total: " + data.account.totalPoints + " Pts)", "success");
                     }
                 } else if (data.joined === false) {
-                    alert(data.message || "Please make sure you tapped 'Join Group' in @RanchiMall, then click Join again to verify!");
-                    if (tgBtn) tgBtn.textContent = "Join";
+                    // Authenticated with Telegram, but hasn't clicked 'Join' in group yet
+                    window.open("https://t.me/RanchiMall", "_blank");
+                    if (typeof notify === "function") {
+                        notify("Please tap 'Join Group' in @RanchiMall, then click the Telegram button again to verify!", "warning");
+                    } else {
+                        alert(data.message || "Please tap 'Join Group' in @RanchiMall, then click the Telegram button to verify!");
+                    }
+                    if (tgStatusEl) tgStatusEl.textContent = "+100 Points";
                 } else {
-                    // Fallback local credit if bot check is pending
+                    // Graceful fallback credit
                     const fallbackAcc = acc || {
                         id: "NS_tg_" + tgUser.id,
                         x: { claimed: false, points: 0 },
-                        telegram: { id: tgUser.id, username: tgUser.username, claimed: true, points: 100 },
+                        telegram: { id: tgUser.id, username: tgUser.username || tgUser.first_name, claimed: true, points: 100 },
                         totalPoints: 100
                     };
-                    fallbackAcc.telegram = { id: tgUser.id, username: tgUser.username, claimed: true, points: 100 };
+                    fallbackAcc.telegram = { id: tgUser.id, username: tgUser.username || tgUser.first_name, claimed: true, points: 100 };
                     fallbackAcc.totalPoints = (fallbackAcc.x?.points || 0) + 100;
                     setUnifiedAccount(fallbackAcc);
                     updateXPointsUI();
@@ -1346,7 +1328,40 @@
                 }
             } catch (err) {
                 console.error("Telegram verification error:", err);
-                if (tgBtn) tgBtn.textContent = "Join";
+                if (tgStatusEl) tgStatusEl.textContent = "+100 Points";
+            }
+        }
+
+        // Handle Telegram Row Action
+        function handleTaskTG() {
+            const acc = getUnifiedAccount();
+            window.open("https://t.me/RanchiMall", "_blank");
+        }
+
+
+        // ------------------------------------------------------------
+        // Dynamic Telegram Login Widget Mount
+        // ------------------------------------------------------------
+
+        function renderTelegramWidget() {
+            const slot = document.getElementById("tgWidgetSlot");
+            const acc = getUnifiedAccount();
+            if (!slot) return;
+            if (acc?.telegram?.claimed) {
+                slot.innerHTML = "";
+                return;
+            }
+            if (!slot.querySelector("iframe") && !slot.querySelector("script")) {
+                const script = document.createElement("script");
+                script.async = true;
+                script.src = "https://telegram.org/js/telegram-widget.js?22";
+                script.setAttribute("data-telegram-login", TELEGRAM_BOT_USERNAME);
+                script.setAttribute("data-size", "small");
+                script.setAttribute("data-radius", "4");
+                script.setAttribute("data-onauth", "onTelegramAuth(user)");
+                script.setAttribute("data-request-access", "write");
+                slot.innerHTML = "";
+                slot.appendChild(script);
             }
         }
 
@@ -1398,6 +1413,8 @@
                     tgBtnEl.textContent = tgDone ? "✓ Done" : "Join";
                     tgBtnEl.className = "x-task-action-btn" + (tgDone ? " done" : "");
                 }
+
+                renderTelegramWidget();
 
                 popover.style.display = "flex";
                 if (button) button.classList.add("active-popover");

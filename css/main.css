@@ -455,6 +455,18 @@ sm-button {
   font-weight: 600;
 }
 
+.x-task-action-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+#tgWidgetSlot {
+  display: inline-flex;
+  align-items: center;
+}
+
 .x-task-action-btn {
   height: 1.65rem;
   padding: 0 0.55rem;
