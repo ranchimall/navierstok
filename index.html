@@ -1228,6 +1228,8 @@
         }
 
 
+        const TELEGRAM_BOT_USERNAME = "NAVIERSTOKpointsBot";
+
         // ------------------------------------------------------------
         // Unified Account State Helper
         // ------------------------------------------------------------
@@ -1253,7 +1255,6 @@
         function handleTaskX() {
             const acc = getUnifiedAccount();
             if (!acc || !acc.x || !acc.x.claimed) {
-                // Not yet connected with X
                 loginWithX();
             } else {
                 window.open("https://x.com/intent/follow?screen_name=" + X_TARGET_USERNAME, "_blank");
@@ -1262,65 +1263,90 @@
 
 
         // ------------------------------------------------------------
-        // Handle Telegram Task in Popover
+        // Handle Telegram Task via Bot Widget & Automated Verification
         // ------------------------------------------------------------
 
         async function handleTaskTG() {
             const acc = getUnifiedAccount();
 
-            // Open Telegram Group in new tab
-            window.open("https://t.me/RanchiMall", "_blank");
-
             if (acc && acc.telegram && acc.telegram.claimed) {
+                window.open("https://t.me/RanchiMall", "_blank");
                 return;
             }
 
-            const tgInput = prompt("Enter your Telegram username (e.g. @yourname) to claim 100 Points:", "");
-            if (!tgInput) return;
+            // Open Telegram Group
+            window.open("https://t.me/RanchiMall", "_blank");
 
-            const cleanHandle = tgInput.trim().replace(/^@/, "");
-            if (!cleanHandle) return;
+            // Check if Telegram Login Widget is available, or use window popup auth
+            if (window.Telegram && window.Telegram.Login) {
+                window.Telegram.Login.auth(
+                    { bot_id: "7891234567", request_access: true },
+                    async (tgUser) => {
+                        if (tgUser) {
+                            await verifyTelegramUser(tgUser);
+                        }
+                    }
+                );
+            } else {
+                // Interactive prompt fallback if widget popup is not active
+                setTimeout(async () => {
+                    const tgHandle = prompt("Enter your Telegram username (without @) to verify membership:", "");
+                    if (!tgHandle) return;
 
-            const currentAccountId = acc ? acc.id || acc.accountId : null;
+                    const clean = tgHandle.trim().replace(/^@/, "");
+                    if (!clean) return;
+
+                    await verifyTelegramUser({ id: clean.toLowerCase(), username: clean });
+                }, 800);
+            }
+        }
+
+        // Send Telegram info to Cloudflare Worker to verify group membership
+        async function verifyTelegramUser(tgUser) {
+            const acc = getUnifiedAccount();
+            const currentAccountId = acc ? (acc.id || acc.accountId) : null;
+            const tgBtn = document.getElementById("popoverTGBtn");
+            if (tgBtn) tgBtn.textContent = "Verifying...";
 
             try {
-                const response = await fetch(X_PROXY + "/claim-reward", {
+                const response = await fetch(X_PROXY + "/verify-telegram", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         accountId: currentAccountId,
-                        platform: "telegram",
-                        user: {
-                            id: cleanHandle.toLowerCase(),
-                            username: cleanHandle
-                        },
-                        points: 100
+                        user: tgUser
                     })
                 });
 
                 const data = await response.json();
-                if (data && data.account) {
+
+                if (data.success && data.account) {
                     setUnifiedAccount(data.account);
                     updateXPointsUI();
+                    toggleXPopover(true);
                     if (typeof notify === "function") {
                         notify("🎉 Telegram Verified! +100 Points Awarded (Total: " + data.account.totalPoints + " Pts)", "success");
                     }
-                }
-            } catch (e) {
-                console.error("Telegram claim error:", e);
-                // Local fallback
-                const fallbackAcc = acc || {
-                    accountId: "NS_tg_" + cleanHandle,
-                    x: { claimed: false, points: 0 },
-                    telegram: { id: cleanHandle, username: cleanHandle, claimed: true, points: 100 },
-                    totalPoints: 100
-                };
-                if (acc) {
-                    fallbackAcc.telegram = { id: cleanHandle, username: cleanHandle, claimed: true, points: 100 };
+                } else if (data.joined === false) {
+                    alert(data.message || "Please make sure you tapped 'Join Group' in @RanchiMall, then click Join again to verify!");
+                    if (tgBtn) tgBtn.textContent = "Join";
+                } else {
+                    // Fallback local credit if bot check is pending
+                    const fallbackAcc = acc || {
+                        id: "NS_tg_" + tgUser.id,
+                        x: { claimed: false, points: 0 },
+                        telegram: { id: tgUser.id, username: tgUser.username, claimed: true, points: 100 },
+                        totalPoints: 100
+                    };
+                    fallbackAcc.telegram = { id: tgUser.id, username: tgUser.username, claimed: true, points: 100 };
                     fallbackAcc.totalPoints = (fallbackAcc.x?.points || 0) + 100;
+                    setUnifiedAccount(fallbackAcc);
+                    updateXPointsUI();
+                    toggleXPopover(true);
                 }
-                setUnifiedAccount(fallbackAcc);
-                updateXPointsUI();
+            } catch (err) {
+                console.error("Telegram verification error:", err);
+                if (tgBtn) tgBtn.textContent = "Join";
             }
         }
 
@@ -1339,8 +1365,8 @@
 
             if (nextState) {
                 const acc = getUnifiedAccount();
-                const totalPoints = acc ? acc.totalPoints || 0 : 0;
-                const displayName = acc?.x?.username ? ("@" + acc.x.username) : (acc?.telegram?.username ? ("@" + acc.telegram.username) : "Guest");
+                const totalPoints = acc ? (acc.totalPoints || 0) : 0;
+                const displayName = acc?.x?.username ? ("@" + acc.x.username) : (acc?.telegram?.username ? ("@" + acc.telegram.username) : "Rewards Program");
 
                 const uEl = document.getElementById("xPopoverUsername");
                 const pEl = document.getElementById("xPopoverPoints");
@@ -1424,15 +1450,16 @@
             if (!acc || (!acc.x?.claimed && !acc.telegram?.claimed)) {
 
                 button.textContent =
-                    "Follow & Join → 200 Points";
+                    "Get Points ⚡";
 
                 button.title =
-                    "Connect X and Telegram to earn 200 NavierStok Points";
+                    "Click to open rewards box & earn up to 200 Points";
 
-                button.onclick =
-                    loginWithX;
+                button.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleXPopover();
+                };
 
-                toggleXPopover(false);
                 return;
             }
 
