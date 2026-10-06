@@ -430,6 +430,11 @@ sm-button {
   color: #229ed9;
 }
 
+.x-task-icon-wrap.discord-icon {
+  background: rgba(88, 101, 242, 0.12);
+  color: #5865F2;
+}
+
 .x-task-meta {
   display: flex;
   flex-direction: column;
