@@ -57,7 +57,7 @@
                 </div>
                 <div class="x-points-header">
                     <button type="button" id="xLoginBtn" class="x-points-btn interact">
-                        Follow & Join → 200 Points
+                        Get Points ⚡
                     </button>
                     <!-- Account Popover Card -->
                     <div id="xUserPopover" class="x-user-popover" style="display: none;">
@@ -1477,17 +1477,9 @@
             }
 
             const totalPoints = acc.totalPoints || ((acc.x?.points || 0) + (acc.telegram?.points || 0));
-            const activeUser = acc.x?.username || acc.telegram?.username || "User";
 
-            button.textContent =
-                "✓ @" +
-                activeUser +
-                " — " +
-                totalPoints +
-                " Points";
-
-            button.title =
-                "Click to view account tasks & total points";
+            button.textContent = "⭐ " + totalPoints + " Pts";
+            button.title = "Click to view rewards account (" + totalPoints + " Points earned)";
 
             button.onclick = (e) => {
                 e.stopPropagation();

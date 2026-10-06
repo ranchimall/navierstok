@@ -1731,14 +1731,30 @@ sm-button {
   #main_header {
     padding: 0.65rem 0;
   }
-  .header-right {
+  #main_header .container {
+    flex-wrap: nowrap;
     gap: 0.35rem;
+  }
+  .header-right {
+    gap: 0.3rem;
+  }
+  .header-social-links {
+    gap: 0.25rem;
+  }
+  .social-icon-btn {
+    width: 1.85rem;
+    height: 1.85rem;
   }
   .x-points-btn,
   #xLoginBtn {
-    font-size: 0.7rem;
-    padding: 0 0.5rem;
+    font-size: 0.72rem;
+    padding: 0 0.55rem;
     height: 1.85rem;
+  }
+  .x-user-popover {
+    right: -1.75rem;
+    width: 285px;
+    max-width: calc(100vw - 1.5rem);
   }
   .hero {
     padding: 1.25rem 0 1rem;
