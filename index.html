@@ -1263,8 +1263,11 @@
 
 
         // ------------------------------------------------------------
-        // Telegram Task: Join & Direct 1-Click Claim
+        // Telegram Task: Method 1 Bot Deep-Link Verification
         // ------------------------------------------------------------
+
+        const TELEGRAM_BOT_USERNAME = "NAVIERSTOKpointsBot";
+        let tgPollTimer = null;
 
         function handleTaskTG() {
             const acc = getUnifiedAccount();
@@ -1276,90 +1279,84 @@
                 return;
             }
 
-            // Open Telegram group
-            window.open("https://t.me/RanchiMall", "_blank");
-
-            // Update button to Claim 100 Points
-            if (tgBtn) {
-                tgBtn.textContent = "Claim 100 Pts ⚡";
-                tgBtn.onclick = claimTelegramDirect;
+            // Generate unique verification token
+            let token = sessionStorage.getItem("ns_tg_session_token");
+            if (!token) {
+                token = "ns_" + Math.random().toString(36).substring(2, 10);
+                sessionStorage.setItem("ns_tg_session_token", token);
             }
-            if (tgStatusEl) {
-                tgStatusEl.textContent = "Click Claim after joining";
-            }
-        }
 
-        async function claimTelegramDirect() {
-            const acc = getUnifiedAccount();
-            const tgBtn = document.getElementById("popoverTGBtn");
-            const tgStatusEl = document.getElementById("popoverTGStatus");
+            // Open Telegram bot with deep-link start token
+            const botUrl = "https://t.me/" + TELEGRAM_BOT_USERNAME + "?start=" + token;
+            window.open(botUrl, "_blank");
 
+            // Update UI to indicate waiting for bot verification
             if (tgBtn) {
-                tgBtn.textContent = "Claiming...";
+                tgBtn.textContent = "Checking...";
                 tgBtn.disabled = true;
             }
-
-            const currentAccountId = acc ? (acc.id || acc.accountId) : null;
-            const userIdentifier = acc?.x?.username ? acc.x.username : ("tg_user_" + Math.random().toString(36).substring(2, 8));
-
-            try {
-                const response = await fetch(X_PROXY + "/claim-reward", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        accountId: currentAccountId,
-                        platform: "telegram",
-                        user: { id: userIdentifier, username: userIdentifier },
-                        points: 100
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data && data.account) {
-                    setUnifiedAccount(data.account);
-                    updateXPointsUI();
-                    toggleXPopover(true);
-                    if (typeof notify === "function") {
-                        notify("🎉 Telegram Task Claimed! +100 Points Awarded (Total: " + data.account.totalPoints + " Pts)", "success");
-                    }
-                } else {
-                    // Fallback local credit if network delay
-                    const fallbackAcc = acc || {
-                        id: "NS_tg_" + Date.now(),
-                        x: { claimed: false, points: 0 },
-                        telegram: { id: userIdentifier, username: userIdentifier, claimed: true, points: 100 },
-                        totalPoints: 100
-                    };
-                    fallbackAcc.telegram = { id: userIdentifier, username: userIdentifier, claimed: true, points: 100 };
-                    fallbackAcc.totalPoints = (fallbackAcc.x?.points || 0) + 100;
-                    setUnifiedAccount(fallbackAcc);
-                    updateXPointsUI();
-                    toggleXPopover(true);
-                    if (typeof notify === "function") {
-                        notify("🎉 Telegram Task Claimed! +100 Points Awarded (Total: " + fallbackAcc.totalPoints + " Pts)", "success");
-                    }
-                }
-            } catch (err) {
-                console.error("Telegram claim error:", err);
-                // Fallback credit
-                const fallbackAcc = acc || {
-                    id: "NS_tg_" + Date.now(),
-                    x: { claimed: false, points: 0 },
-                    telegram: { id: userIdentifier, username: userIdentifier, claimed: true, points: 100 },
-                    totalPoints: 100
-                };
-                fallbackAcc.telegram = { id: userIdentifier, username: userIdentifier, claimed: true, points: 100 };
-                fallbackAcc.totalPoints = (fallbackAcc.x?.points || 0) + 100;
-                setUnifiedAccount(fallbackAcc);
-                updateXPointsUI();
-                toggleXPopover(true);
-                if (typeof notify === "function") {
-                    notify("🎉 Telegram Task Claimed! +100 Points Awarded", "success");
-                }
-            } finally {
-                if (tgBtn) tgBtn.disabled = false;
+            if (tgStatusEl) {
+                tgStatusEl.textContent = "Tap START in Telegram Bot...";
             }
+
+            // Start polling for verification
+            startTelegramPolling(token);
+        }
+
+        function startTelegramPolling(token) {
+            if (tgPollTimer) clearInterval(tgPollTimer);
+
+            let attempts = 0;
+            const maxAttempts = 60; // poll for 2 minutes (every 2s)
+
+            tgPollTimer = setInterval(async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    clearInterval(tgPollTimer);
+                    const tgBtn = document.getElementById("popoverTGBtn");
+                    const tgStatusEl = document.getElementById("popoverTGStatus");
+                    if (tgBtn) {
+                        tgBtn.textContent = "Verify ⚡";
+                        tgBtn.disabled = false;
+                        tgBtn.onclick = () => handleTaskTG();
+                    }
+                    if (tgStatusEl) tgStatusEl.textContent = "+100 Points";
+                    return;
+                }
+
+                try {
+                    const acc = getUnifiedAccount();
+                    const currentAccountId = acc ? (acc.id || acc.accountId) : null;
+                    const res = await fetch(X_PROXY + "/check-tg-session?token=" + encodeURIComponent(token) + (currentAccountId ? "&accountId=" + encodeURIComponent(currentAccountId) : ""));
+                    const data = await res.json();
+
+                    if (data && data.verified && data.user) {
+                        clearInterval(tgPollTimer);
+                        
+                        let updatedAcc = data.account;
+                        if (!updatedAcc) {
+                            updatedAcc = acc || {
+                                id: "NS_tg_" + data.user.id,
+                                x: { claimed: false, points: 0 },
+                                telegram: { id: data.user.id, username: data.user.username, claimed: true, points: 100 },
+                                totalPoints: 100
+                            };
+                            updatedAcc.telegram = { id: data.user.id, username: data.user.username, claimed: true, points: 100 };
+                            updatedAcc.totalPoints = (updatedAcc.x?.points || 0) + 100;
+                        }
+
+                        setUnifiedAccount(updatedAcc);
+                        updateXPointsUI();
+                        toggleXPopover(true);
+
+                        if (typeof notify === "function") {
+                            notify("🎉 @" + data.user.username + " Verified! +100 Points Awarded (Total: " + updatedAcc.totalPoints + " Pts)", "success");
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Telegram check poll error:", e);
+                }
+            }, 2000);
         }
 
 
@@ -1378,7 +1375,12 @@
             if (nextState) {
                 const acc = getUnifiedAccount();
                 const totalPoints = acc ? (acc.totalPoints || 0) : 0;
-                const displayName = acc?.x?.username ? ("@" + acc.x.username) : (acc?.telegram?.username ? ("@" + acc.telegram.username) : "Join and Get Points");
+                let displayName = "Join and Get Points";
+                if (acc?.x?.username) {
+                    displayName = "@" + acc.x.username;
+                } else if (acc?.telegram?.username) {
+                    displayName = "@" + acc.telegram.username;
+                }
 
                 const uEl = document.getElementById("xPopoverUsername");
                 const pEl = document.getElementById("xPopoverPoints");
@@ -1403,12 +1405,13 @@
                 const tgStatusEl = document.getElementById("popoverTGStatus");
                 const tgBtnEl = document.getElementById("popoverTGBtn");
                 if (tgStatusEl) {
-                    tgStatusEl.textContent = tgDone ? ("✓ Joined (+100 Pts)") : "+100 Points";
+                    tgStatusEl.textContent = tgDone ? ("✓ @" + acc.telegram.username + " (+100 Pts)") : "+100 Points";
                     tgStatusEl.className = "x-task-status" + (tgDone ? " completed" : "");
                 }
                 if (tgBtnEl) {
                     tgBtnEl.textContent = tgDone ? "✓ Done" : "Join";
                     tgBtnEl.className = "x-task-action-btn" + (tgDone ? " done" : "");
+                    tgBtnEl.disabled = false;
                     tgBtnEl.onclick = tgDone ? () => window.open("https://t.me/RanchiMall", "_blank") : handleTaskTG;
                 }
 
