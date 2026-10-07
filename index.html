@@ -1656,20 +1656,42 @@
 
 
         // ------------------------------------------------------------
-        // Discord Task: OAuth2 + Server Verification
+        // Discord Task: Join Server First -> Then Verify Membership
         // ------------------------------------------------------------
 
         const DISCORD_CLIENT_ID = "1557034659857170522";
         const DISCORD_REDIRECT_URI = location.origin + location.pathname;
         const DISCORD_INVITE_URL = "https://discord.gg/WQQE44sB";
 
+        function openDiscordInvite() {
+            // Universal Link: Launches Discord mobile app natively if installed, or web browser
+            window.open(DISCORD_INVITE_URL, "_blank");
+        }
+
         function handleTaskDiscord() {
             const acc = getUnifiedAccount();
             if (acc?.discord?.claimed) {
-                window.open(DISCORD_INVITE_URL, "_blank");
+                openDiscordInvite();
                 return;
             }
 
+            // Step 1: Open Discord server invite directly
+            openDiscordInvite();
+
+            // Switch button to Verify ⚡
+            sessionStorage.setItem("ns_discord_invite_opened", "1");
+            const discordBtnEl = document.getElementById("popoverDiscordBtn");
+            const discordStatusEl = document.getElementById("popoverDiscordStatus");
+            if (discordBtnEl) {
+                discordBtnEl.textContent = "Verify ⚡";
+                discordBtnEl.onclick = authorizeDiscord;
+            }
+            if (discordStatusEl) {
+                discordStatusEl.textContent = "Tap Verify after joining";
+            }
+        }
+
+        function authorizeDiscord() {
             const state = "discord_" + xRandomBytes(16);
             sessionStorage.setItem("ns_discord_state", state);
 
@@ -1706,7 +1728,11 @@
 
             const data = await res.json();
 
+            // Clean query parameters from URL
+            window.history.replaceState({}, document.title, DISCORD_REDIRECT_URI);
+
             if (data.success && data.account) {
+                sessionStorage.removeItem("ns_discord_invite_opened");
                 setUnifiedAccount(data.account);
                 updateXPointsUI();
                 toggleXPopover(true);
@@ -1714,11 +1740,13 @@
                     notify("🎉 Discord Verified (@" + data.user.username + ")! +100 Points Awarded (Total: " + data.account.totalPoints + " Pts)", "success");
                 }
             } else if (data.member === false) {
-                window.open(DISCORD_INVITE_URL, "_blank");
+                sessionStorage.setItem("ns_discord_invite_opened", "1");
+                updateXPointsUI();
+                toggleXPopover(true);
                 if (typeof notify === "function") {
-                    notify("Please join the RanchiMall Discord server, then click Join again to verify!", "warning");
+                    notify("Please join the RanchiMall Discord server first, then tap Verify!", "warning");
                 } else {
-                    alert(data.message || "Please join the RanchiMall Discord server, then verify!");
+                    alert("Please join the RanchiMall Discord server first, then tap Verify!");
                 }
             } else {
                 throw new Error(data.error || "Discord verification failed");
@@ -1787,17 +1815,39 @@
 
                 // Render Discord Task Row
                 const discordDone = acc?.discord?.claimed;
+                const discordInviteOpened = sessionStorage.getItem("ns_discord_invite_opened") === "1";
                 const discordStatusEl = document.getElementById("popoverDiscordStatus");
                 const discordBtnEl = document.getElementById("popoverDiscordBtn");
+
                 if (discordStatusEl) {
-                    discordStatusEl.textContent = discordDone ? ("✓ @" + acc.discord.username + " (+100 Pts)") : "+100 Points";
-                    discordStatusEl.className = "x-task-status" + (discordDone ? " completed" : "");
+                    if (discordDone) {
+                        discordStatusEl.textContent = "✓ @" + acc.discord.username + " (+100 Pts)";
+                        discordStatusEl.className = "x-task-status completed";
+                    } else if (discordInviteOpened) {
+                        discordStatusEl.textContent = "Tap Verify after joining";
+                        discordStatusEl.className = "x-task-status";
+                    } else {
+                        discordStatusEl.textContent = "+100 Points";
+                        discordStatusEl.className = "x-task-status";
+                    }
                 }
                 if (discordBtnEl) {
-                    discordBtnEl.textContent = discordDone ? "✓ Done" : "Join";
-                    discordBtnEl.className = "x-task-action-btn" + (discordDone ? " done" : "");
-                    discordBtnEl.disabled = !!discordDone;
-                    discordBtnEl.onclick = discordDone ? null : handleTaskDiscord;
+                    if (discordDone) {
+                        discordBtnEl.textContent = "✓ Done";
+                        discordBtnEl.className = "x-task-action-btn done";
+                        discordBtnEl.disabled = true;
+                        discordBtnEl.onclick = null;
+                    } else if (discordInviteOpened) {
+                        discordBtnEl.textContent = "Verify ⚡";
+                        discordBtnEl.className = "x-task-action-btn";
+                        discordBtnEl.disabled = false;
+                        discordBtnEl.onclick = authorizeDiscord;
+                    } else {
+                        discordBtnEl.textContent = "Join";
+                        discordBtnEl.className = "x-task-action-btn";
+                        discordBtnEl.disabled = false;
+                        discordBtnEl.onclick = handleTaskDiscord;
+                    }
                 }
 
                 popover.style.display = "flex";
