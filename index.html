@@ -257,7 +257,7 @@
                                 <span class="ticker-live-dot" title="Live On-Chain Data"></span>
                                 <span class="ticker-col-label">Price</span>
                             </div>
-                            <span class="ticker-col-val" id="live_hero_price">$0.0001657</span>
+                            <span class="ticker-col-val" id="live_hero_price">$0.0005142</span>
                         </div>
 
                         <div class="ticker-divider"></div>
@@ -266,7 +266,7 @@
                             <div class="ticker-label-row">
                                 <span class="ticker-col-label">Market Cap</span>
                             </div>
-                            <span class="ticker-col-val" id="live_hero_mcap">$166K</span>
+                            <span class="ticker-col-val" id="live_hero_mcap">$514K</span>
                         </div>
 
                         <div class="ticker-divider"></div>
@@ -276,7 +276,7 @@
                                 <span class="ticker-col-label">24h Change</span>
                             </div>
                             <div class="ticker-badge-wrap">
-                                <span class="ticker-change-badge change-up" id="live_hero_24h">▲ +21.5%</span>
+                                <span class="ticker-change-badge change-up" id="live_hero_24h">▲ +13.3%</span>
                             </div>
                         </div>
                     </div>
@@ -297,14 +297,14 @@
 
                         <div class="stat-card">
                             <span class="stat-label">Tokens in AMM Pool</span>
-                            <span class="stat-value" id="amm_pool_tokens_val">79,660,915.59</span>
-                            <span class="stat-sub" id="amm_pool_tokens_sub">7.97% in PumpSwap</span>
+                            <span class="stat-value" id="amm_pool_tokens_val">74,062,084.62</span>
+                            <span class="stat-sub" id="amm_pool_tokens_sub">7.41% in PumpSwap</span>
                         </div>
 
                         <div class="stat-card">
                             <span class="stat-label">Paired Reserves</span>
-                            <span class="stat-value" id="amm_paired_reserves_val">66.52 TSMx (TSMC xStock)</span>
-                            <span class="stat-sub" id="amm_paired_reserves_sub">≈ $31,598 USD Liquidity</span>
+                            <span class="stat-value" id="amm_paired_reserves_val">72.00 TSMx (TSMC xStock)</span>
+                            <span class="stat-sub" id="amm_paired_reserves_sub">≈ $35,841 USD Liquidity</span>
                         </div>
                     </div>
                 </div>
@@ -864,11 +864,15 @@
                 const navierData = await navierRes.json();
                 const tsmxData = await tsmxRes.json();
 
+                let liveNavier = null;
+                let liveTsmx = null;
+
                 if (navierData && navierData.result && navierData.result.value) {
                     const navierBal = navierData.result.value.uiAmount;
                     const navierEl = document.getElementById('amm_pool_tokens_val');
                     const navierSubEl = document.getElementById('amm_pool_tokens_sub');
                     if (navierEl && !isNaN(navierBal)) {
+                        liveNavier = navierBal;
                         navierEl.textContent = navierBal.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
@@ -885,15 +889,26 @@
                     const tsmxEl = document.getElementById('amm_paired_reserves_val');
                     const tsmxSubEl = document.getElementById('amm_paired_reserves_sub');
                     if (tsmxEl && !isNaN(tsmxBal)) {
+                        liveTsmx = tsmxBal;
                         tsmxEl.textContent = tsmxBal.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         }) + ' TSMx (TSMC xStock)';
                     }
                     if (tsmxSubEl && !isNaN(tsmxBal)) {
-                        const tsmxUsdPrice = priceState.tsmxPriceInUsd || 475.00;
+                        const tsmxUsdPrice = priceState.tsmxPriceInUsd || 497.79;
                         const usdValue = Math.round(tsmxBal * tsmxUsdPrice);
                         tsmxSubEl.textContent = '≈ $' + usdValue.toLocaleString() + ' USD Liquidity';
+                    }
+                }
+
+                // If live on-chain balances are available, derive real-time spot price fallback
+                if (liveNavier && liveTsmx && liveNavier > 0) {
+                    const spotRate = liveTsmx / liveNavier;
+                    if (!isNaN(spotRate) && spotRate > 0 && !priceState.dexscreenerFetched) {
+                        priceState.navierstokPriceInTsmx = spotRate;
+                        updateHeroPriceDisplay();
+                        updateCalculations();
                     }
                 }
             } catch (err) {
@@ -903,11 +918,12 @@
 
         // Price and Swap State
         const priceState = {
-            navierstokPriceInTsmx: 0.0000003495, // Default fallback from PumpSwap AMM
-            tsmxPriceInUsd: 475.00,             // Default fallback from Orca
+            navierstokPriceInTsmx: 0.000001033, // Default fallback from PumpSwap AMM pair
+            tsmxPriceInUsd: 497.79,             // Live TSMC xStock price
             solPriceInUsd: 150.00,              // Default fallback
-            priceChange24h: 21.5,               // 24h % change fallback
-            currentSpendCurrency: 'SOL'
+            priceChange24h: 13.31,              // 24h % change
+            currentSpendCurrency: 'SOL',
+            dexscreenerFetched: false
         };
 
         // Update Live Hero Price, Market Cap, and 24h Change Banner
@@ -948,15 +964,16 @@
         // Fetch Live Prices from DexScreener & CoinGecko
         async function fetchLivePrices() {
             try {
-                // 1. Fetch NAVIERSTOK / TSMx pair on PumpSwap
-                const navierRes = await fetch('https://api.dexscreener.com/latest/dex/tokens/4svsyTi5yRpVUUHFcKqDozCuEdhhP3H1VPy4xuTQpump');
+                // 1. Fetch NAVIERSTOK / TSMx PumpSwap pair from DexScreener
+                const navierRes = await fetch('https://api.dexscreener.com/latest/dex/pairs/solana/AkyigaXhnBCKWupybbphq5VeUg1H2RNHnbLgj5zoyj7t');
                 if (navierRes.ok) {
                     const data = await navierRes.json();
-                    if (data.pairs && data.pairs.length > 0) {
-                        const pair = data.pairs[0];
+                    const pair = data.pair || (data.pairs && data.pairs[0]);
+                    if (pair) {
                         const priceNative = parseFloat(pair.priceNative);
                         if (!isNaN(priceNative) && priceNative > 0) {
                             priceState.navierstokPriceInTsmx = priceNative;
+                            priceState.dexscreenerFetched = true;
                         }
                         if (pair.priceChange && typeof pair.priceChange.h24 !== 'undefined') {
                             const change24 = parseFloat(pair.priceChange.h24);
@@ -967,28 +984,11 @@
                     }
                 }
             } catch (err) {
-                console.warn('DexScreener NAVIERSTOK price fallback used', err);
+                console.warn('DexScreener NAVIERSTOK pair price fallback used', err);
             }
 
             try {
-                // 2. Fetch TSMx price in USD from DexScreener
-                const tsmxRes = await fetch('https://api.dexscreener.com/latest/dex/tokens/XsafvsGtzFqqHgTnA3aPC83EAMkacU5mcGtcSayhpVV');
-                if (tsmxRes.ok) {
-                    const data = await tsmxRes.json();
-                    if (data.pairs && data.pairs.length > 0) {
-                        const usdcPair = data.pairs.find(p => p.quoteToken && p.quoteToken.symbol === 'USDC') || data.pairs[0];
-                        const priceUsd = parseFloat(usdcPair.priceUsd);
-                        if (!isNaN(priceUsd) && priceUsd > 0) {
-                            priceState.tsmxPriceInUsd = priceUsd;
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn('DexScreener TSMx price fallback used', err);
-            }
-
-            try {
-                // 3. Fetch SOL price in USD from CoinGecko
+                // 2. Fetch SOL price in USD from CoinGecko
                 const solRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
                 if (solRes.ok) {
                     const data = await solRes.json();
