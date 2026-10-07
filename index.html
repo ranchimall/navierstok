@@ -257,7 +257,7 @@
                                 <span class="ticker-live-dot" title="Live On-Chain Data"></span>
                                 <span class="ticker-col-label">Price</span>
                             </div>
-                            <span class="ticker-col-val" id="live_hero_price">$0.0005142</span>
+                            <span class="ticker-col-val skeleton-loader" id="live_hero_price"></span>
                         </div>
 
                         <div class="ticker-divider"></div>
@@ -266,7 +266,7 @@
                             <div class="ticker-label-row">
                                 <span class="ticker-col-label">Market Cap</span>
                             </div>
-                            <span class="ticker-col-val" id="live_hero_mcap">$514K</span>
+                            <span class="ticker-col-val skeleton-loader" id="live_hero_mcap"></span>
                         </div>
 
                         <div class="ticker-divider"></div>
@@ -276,7 +276,7 @@
                                 <span class="ticker-col-label">24h Change</span>
                             </div>
                             <div class="ticker-badge-wrap">
-                                <span class="ticker-change-badge change-up" id="live_hero_24h">▲ +13.3%</span>
+                                <span class="ticker-change-badge change-up skeleton-loader" id="live_hero_24h" style="min-width: 3.8rem; height: 1.4rem;"></span>
                             </div>
                         </div>
                     </div>
@@ -291,20 +291,20 @@
 
                         <div class="stat-card">
                             <span class="stat-label">Circulating Supply</span>
-                            <span class="stat-value" id="circulating_supply_val">965,246,768.92</span>
+                            <span class="stat-value skeleton-loader" id="circulating_supply_val" style="min-width: 8rem;"></span>
                             <span class="stat-sub">Updated via Solana RPC</span>
                         </div>
 
                         <div class="stat-card">
                             <span class="stat-label">Tokens in AMM Pool</span>
-                            <span class="stat-value" id="amm_pool_tokens_val">74,062,084.62</span>
-                            <span class="stat-sub" id="amm_pool_tokens_sub">7.41% in PumpSwap</span>
+                            <span class="stat-value skeleton-loader" id="amm_pool_tokens_val" style="min-width: 7.5rem;"></span>
+                            <span class="stat-sub" id="amm_pool_tokens_sub">...</span>
                         </div>
 
                         <div class="stat-card">
                             <span class="stat-label">Paired Reserves</span>
-                            <span class="stat-value" id="amm_paired_reserves_val">72.00 TSMx (TSMC xStock)</span>
-                            <span class="stat-sub" id="amm_paired_reserves_sub">≈ $35,841 USD Liquidity</span>
+                            <span class="stat-value skeleton-loader" id="amm_paired_reserves_val" style="min-width: 8.5rem;"></span>
+                            <span class="stat-sub" id="amm_paired_reserves_sub">...</span>
                         </div>
                     </div>
                 </div>
@@ -373,11 +373,11 @@
                         <div class="swap-field-container receive-container">
                             <div class="swap-field-top">
                                 <label class="swap-field-label">You Receive (Estimated)</label>
-                                <span class="swap-price-usd" id="receive_fiat_val">≈ $0.000110 / token</span>
+                                <span class="swap-price-usd" id="receive_fiat_val">...</span>
                             </div>
                             <div class="swap-field-row">
                                 <div class="swap-output-val" id="receive_estimate_display">
-                                    <span class="calc-loading-pulse">Calculating...</span>
+                                    <span class="calc-loading-pulse">...</span>
                                 </div>
                                 <div class="token-receive-badge">
                                     <img src="assets/logo.jpg" alt="NAVIERSTOK" class="token-mini-avatar" />
@@ -811,19 +811,103 @@
             }
         }
 
+        // ============================================================
+        // LIVE STATE CACHING & INSTANT REHYDRATION (ZERO GLITCH RELOAD)
+        // ============================================================
+        const CACHE_KEY = 'navierstok_live_state_v1';
+
+        // Price and Swap State
+        const priceState = {
+            navierstokPriceInTsmx: 0.000001033, // Default fallback from PumpSwap AMM pair
+            tsmxPriceInUsd: 497.79,             // Live TSMC xStock price
+            solPriceInUsd: 115.90,              // Live Solana price
+            priceChange24h: 13.31,              // 24h % change
+            currentSpendCurrency: 'SOL',
+            dexscreenerFetched: false
+        };
+
+        // Save current live state snapshot
+        function saveLiveStateSnapshot() {
+            try {
+                const snapshot = {
+                    heroPrice: document.getElementById('live_hero_price')?.textContent,
+                    heroMcap: document.getElementById('live_hero_mcap')?.textContent,
+                    hero24h: document.getElementById('live_hero_24h')?.textContent,
+                    hero24hClass: document.getElementById('live_hero_24h')?.className,
+                    circSupply: document.getElementById('circulating_supply_val')?.textContent,
+                    ammTokens: document.getElementById('amm_pool_tokens_val')?.textContent,
+                    ammTokensSub: document.getElementById('amm_pool_tokens_sub')?.textContent,
+                    pairedReserves: document.getElementById('amm_paired_reserves_val')?.textContent,
+                    pairedReservesSub: document.getElementById('amm_paired_reserves_sub')?.textContent,
+                    swapRate: document.getElementById('swap_rate_display')?.textContent,
+                    spendFiat: document.getElementById('spend_fiat_val')?.textContent,
+                    receiveFiat: document.getElementById('receive_fiat_val')?.textContent,
+                    receiveEstimate: document.getElementById('receive_estimate_display')?.textContent,
+                    priceState: priceState
+                };
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
+            } catch (e) {}
+        }
+
+        // Restore live state snapshot (instant hydration on page reload)
+        function restoreLiveStateSnapshot() {
+            try {
+                const raw = sessionStorage.getItem(CACHE_KEY);
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+                if (!data) return false;
+
+                const updateEl = (id, text, isClass, cls) => {
+                    const el = document.getElementById(id);
+                    if (el && text && text.trim() !== '' && text !== '...') {
+                        el.textContent = text;
+                        el.classList.remove('skeleton-loader');
+                        if (isClass && cls) {
+                            el.className = cls.replace('skeleton-loader', '').trim();
+                        }
+                    }
+                };
+
+                updateEl('live_hero_price', data.heroPrice);
+                updateEl('live_hero_mcap', data.heroMcap);
+                updateEl('live_hero_24h', data.hero24h, true, data.hero24hClass);
+                updateEl('circulating_supply_val', data.circSupply);
+                updateEl('amm_pool_tokens_val', data.ammTokens);
+                updateEl('amm_pool_tokens_sub', data.ammTokensSub);
+                updateEl('amm_paired_reserves_val', data.pairedReserves);
+                updateEl('amm_paired_reserves_sub', data.pairedReservesSub);
+                updateEl('swap_rate_display', data.swapRate);
+                updateEl('spend_fiat_val', data.spendFiat);
+                updateEl('receive_fiat_val', data.receiveFiat);
+                updateEl('receive_estimate_display', data.receiveEstimate);
+
+                if (data.priceState) {
+                    Object.assign(priceState, data.priceState);
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
         // Dynamically fetch and update circulating supply from circulating.txt
         async function fetchSupplyData() {
             try {
-                // Fetch Circulating Supply
                 const circRes = await fetch('circulating.txt?t=' + Date.now());
                 if (circRes.ok) {
                     const circText = (await circRes.text()).trim();
                     const circNum = parseFloat(circText);
                     if (!isNaN(circNum)) {
-                        document.getElementById('circulating_supply_val').textContent = circNum.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 6
-                        });
+                        const el = document.getElementById('circulating_supply_val');
+                        if (el) {
+                            el.textContent = circNum.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 6
+                            });
+                            el.classList.remove('skeleton-loader');
+                            el.classList.add('fade-in-data');
+                        }
+                        saveLiveStateSnapshot();
                     }
                 }
             } catch (e) {
@@ -877,6 +961,8 @@
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         });
+                        navierEl.classList.remove('skeleton-loader');
+                        navierEl.classList.add('fade-in-data');
                     }
                     if (navierSubEl && !isNaN(navierBal)) {
                         const pct = ((navierBal / 1000000000) * 100).toFixed(2);
@@ -894,6 +980,8 @@
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         }) + ' TSMx (TSMC xStock)';
+                        tsmxEl.classList.remove('skeleton-loader');
+                        tsmxEl.classList.add('fade-in-data');
                     }
                     if (tsmxSubEl && !isNaN(tsmxBal)) {
                         const tsmxUsdPrice = priceState.tsmxPriceInUsd || 497.79;
@@ -911,20 +999,11 @@
                         updateCalculations();
                     }
                 }
+                saveLiveStateSnapshot();
             } catch (err) {
                 console.warn('Could not fetch AMM pool reserves via Helius:', err);
             }
         }
-
-        // Price and Swap State
-        const priceState = {
-            navierstokPriceInTsmx: 0.000001033, // Default fallback from PumpSwap AMM pair
-            tsmxPriceInUsd: 497.79,             // Live TSMC xStock price
-            solPriceInUsd: 150.00,              // Default fallback
-            priceChange24h: 13.31,              // 24h % change
-            currentSpendCurrency: 'SOL',
-            dexscreenerFetched: false
-        };
 
         // Update Live Hero Price, Market Cap, and 24h Change Banner
         function updateHeroPriceDisplay() {
@@ -938,6 +1017,8 @@
                     minimumFractionDigits: 6,
                     maximumFractionDigits: 7
                 });
+                priceEl.classList.remove('skeleton-loader');
+                priceEl.classList.add('fade-in-data');
             }
 
             if (mcapEl && navierstokUsd > 0) {
@@ -949,6 +1030,8 @@
                 } else {
                     mcapEl.textContent = '$' + Math.round(totalMcap).toLocaleString();
                 }
+                mcapEl.classList.remove('skeleton-loader');
+                mcapEl.classList.add('fade-in-data');
             }
 
             if (changeEl) {
@@ -957,8 +1040,10 @@
                 const arrow = isPositive ? '▲ ' : '▼ ';
                 const sign = change > 0 ? '+' : '';
                 changeEl.textContent = arrow + sign + change.toFixed(1) + '%';
-                changeEl.className = 'ticker-change-badge ' + (isPositive ? 'change-up' : 'change-down');
+                changeEl.className = 'ticker-change-badge ' + (isPositive ? 'change-up' : 'change-down') + ' fade-in-data';
+                changeEl.classList.remove('skeleton-loader');
             }
+            saveLiveStateSnapshot();
         }
 
         // Fetch Live Prices from DexScreener & CoinGecko
@@ -1023,11 +1108,17 @@
                 if (navierstokUsd > 0) {
                     estimatedTokens = spendFiatUsd / navierstokUsd;
                 }
-                document.getElementById('spend_fiat_val').textContent = '≈ $' + spendFiatUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD';
+                const spendEl = document.getElementById('spend_fiat_val');
+                if (spendEl) {
+                    spendEl.textContent = '≈ $' + spendFiatUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD';
+                }
                 
                 if (navierstokUsd > 0 && priceState.solPriceInUsd > 0) {
                     const tokensPerSol = Math.round(priceState.solPriceInUsd / navierstokUsd);
-                    document.getElementById('swap_rate_display').textContent = '1 SOL ≈ ' + tokensPerSol.toLocaleString() + ' $NAVIERSTOK';
+                    const swapRateEl = document.getElementById('swap_rate_display');
+                    if (swapRateEl) {
+                        swapRateEl.textContent = '1 SOL ≈ ' + tokensPerSol.toLocaleString() + ' $NAVIERSTOK';
+                    }
                 }
             } else {
                 // TSMx
@@ -1035,24 +1126,36 @@
                 if (priceState.navierstokPriceInTsmx > 0) {
                     estimatedTokens = amount / priceState.navierstokPriceInTsmx;
                 }
-                document.getElementById('spend_fiat_val').textContent = '≈ $' + spendFiatUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD';
+                const spendEl = document.getElementById('spend_fiat_val');
+                if (spendEl) {
+                    spendEl.textContent = '≈ $' + spendFiatUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD';
+                }
                 
                 if (priceState.navierstokPriceInTsmx > 0) {
                     const tokensPerTsmx = Math.round(1 / priceState.navierstokPriceInTsmx);
-                    document.getElementById('swap_rate_display').textContent = '1 TSMx ≈ ' + tokensPerTsmx.toLocaleString() + ' $NAVIERSTOK';
+                    const swapRateEl = document.getElementById('swap_rate_display');
+                    if (swapRateEl) {
+                        swapRateEl.textContent = '1 TSMx ≈ ' + tokensPerTsmx.toLocaleString() + ' $NAVIERSTOK';
+                    }
                 }
             }
 
-            document.getElementById('receive_fiat_val').textContent = '≈ $' + navierstokUsd.toFixed(6) + ' / token';
+            const receiveFiatEl = document.getElementById('receive_fiat_val');
+            if (receiveFiatEl && navierstokUsd > 0) {
+                receiveFiatEl.textContent = '≈ $' + navierstokUsd.toFixed(6) + ' / token';
+            }
 
             const receiveDisplay = document.getElementById('receive_estimate_display');
-            if (amount <= 0) {
-                receiveDisplay.textContent = '0.00';
-            } else {
-                receiveDisplay.textContent = Math.floor(estimatedTokens).toLocaleString();
+            if (receiveDisplay) {
+                if (amount <= 0) {
+                    receiveDisplay.textContent = '0.00';
+                } else {
+                    receiveDisplay.textContent = Math.floor(estimatedTokens).toLocaleString();
+                }
             }
 
             updateActiveChipHighlight(spendInput.value);
+            saveLiveStateSnapshot();
         }
 
         // Helper to update active chip highlight based on input value
@@ -1134,6 +1237,10 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Instantly restore previous session state if refreshing
+            restoreLiveStateSnapshot();
+            
+            // Trigger fresh live on-chain queries
             fetchSupplyData();
             fetchLivePrices();
             fetchAmmPoolReserves();
