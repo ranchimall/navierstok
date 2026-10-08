@@ -1425,13 +1425,13 @@
                 )
             );
 
-            sessionStorage.setItem(
-                "ranchimall_x_pkce",
-                JSON.stringify({
-                    verifier,
-                    state
-                })
-            );
+            const pkceData = JSON.stringify({
+                verifier,
+                state
+            });
+
+            localStorage.setItem("ranchimall_x_pkce", pkceData);
+            sessionStorage.setItem("ranchimall_x_pkce", pkceData);
 
             const params = new URLSearchParams({
                 response_type: "code",
@@ -1474,11 +1474,10 @@
 
         async function handleXCallback(code, returnedState) {
 
-            const saved = JSON.parse(
-                sessionStorage.getItem("ranchimall_x_pkce") || "null"
-            );
+            const savedStr = localStorage.getItem("ranchimall_x_pkce") || sessionStorage.getItem("ranchimall_x_pkce") || "null";
+            const saved = JSON.parse(savedStr);
 
-            if (!saved) {
+            if (!saved || !saved.verifier) {
                 throw new Error("X login session expired. Please try again.");
             }
 
@@ -1486,6 +1485,7 @@
                 throw new Error("Invalid OAuth state.");
             }
 
+            localStorage.removeItem("ranchimall_x_pkce");
             sessionStorage.removeItem("ranchimall_x_pkce");
 
 
@@ -1529,6 +1529,7 @@
 
             // Save access token in session for instant re-checks
             sessionStorage.setItem("ranchimall_x_access_token", accessToken);
+            localStorage.setItem("ranchimall_x_access_token", accessToken);
 
             // --------------------------------------------------------
             // Get logged-in X account
@@ -1553,21 +1554,62 @@
             // Find RanchiMallFLO (ID lookup with username fallback)
             // --------------------------------------------------------
 
-            let targetId = sessionStorage.getItem("ranchimall_target_id");
+            let targetId = sessionStorage.getItem("ranchimall_target_id") || localStorage.getItem("ranchimall_target_id");
             try {
-                const targetResponse =
-                    await xApi(
-                        "/users/by/username/" +
-                        X_TARGET_USERNAME,
-                        accessToken
-                    );
+                if (!targetId) {
+                    const targetResponse =
+                        await xApi(
+                            "/users/by/username/" +
+                            X_TARGET_USERNAME,
+                            accessToken
+                        );
 
-                if (targetResponse && targetResponse.data) {
-                    sessionStorage.setItem("ranchimall_target_id", targetResponse.data.id);
+                    if (targetResponse && targetResponse.data) {
+                        targetId = targetResponse.data.id;
+                        sessionStorage.setItem("ranchimall_target_id", targetId);
+                        localStorage.setItem("ranchimall_target_id", targetId);
+                    }
                 }
             } catch (err) {
                 console.warn("Could not pre-fetch target ID:", err);
             }
+
+            // --------------------------------------------------------
+            // Verify if user is following @ranchimallflo
+            // --------------------------------------------------------
+            let isFollowing = false;
+            try {
+                if (targetId) {
+                    const followingRes = await xApi("/users/" + me.id + "/following?max_results=1000", accessToken);
+                    if (followingRes && Array.isArray(followingRes.data)) {
+                        isFollowing = followingRes.data.some(u => u.id === targetId || u.username?.toLowerCase() === X_TARGET_USERNAME.toLowerCase());
+                    } else if (followingRes && followingRes.errors) {
+                        console.warn("Following query returned errors, proceeding to claim:", followingRes.errors);
+                        isFollowing = true;
+                    }
+                } else {
+                    isFollowing = true;
+                }
+            } catch (err) {
+                console.warn("Follow check error:", err);
+                isFollowing = true;
+            }
+
+            if (!isFollowing) {
+                localStorage.setItem("ns_x_opened", "1");
+                sessionStorage.setItem("ns_x_opened", "1");
+                window.history.replaceState({}, document.title, X_REDIRECT_URI);
+                updateXPointsUI();
+                toggleXPopover(true);
+                const msg = "Please follow @" + X_TARGET_USERNAME + " on X first, then tap Verify Follow!";
+                if (typeof notify === "function") {
+                    notify(msg, "warning");
+                } else {
+                    alert(msg);
+                }
+                return;
+            }
+
             // --------------------------------------------------------
             // Sync with Cloudflare KV (Unified Multi-Platform Account)
             // --------------------------------------------------------
@@ -1600,13 +1642,24 @@
                     accountId: "NS_x_" + me.id,
                     x: { id: me.id, username: me.username, claimed: true, points: X_POINTS },
                     telegram: { claimed: false, points: 0 },
+                    discord: { claimed: false, points: 0 },
                     totalPoints: X_POINTS
                 };
             }
 
             // Save unified account to storage
-            sessionStorage.setItem("ranchimall_account", JSON.stringify(unifiedAcc));
+            sessionStorage.removeItem("ns_x_opened");
+            localStorage.removeItem("ns_x_opened");
+            setUnifiedAccount(unifiedAcc);
             sessionStorage.setItem(
+                "ranchimall_x_user",
+                JSON.stringify({
+                    id: me.id,
+                    username: me.username,
+                    follows: true
+                })
+            );
+            localStorage.setItem(
                 "ranchimall_x_user",
                 JSON.stringify({
                     id: me.id,
@@ -1623,6 +1676,7 @@
             );
 
             updateXPointsUI();
+            toggleXPopover(true);
 
             if (typeof notify === "function") {
                 notify("🎉 Welcome @" + me.username + "! " + unifiedAcc.totalPoints + " NavierStok Points synced.", "success");
@@ -1649,15 +1703,35 @@
 
 
         // ------------------------------------------------------------
-        // Handle X Task in Popover
+        // Handle X Task in Popover: 2-Step (Open Profile -> Verify Follow)
         // ------------------------------------------------------------
+
+        function openXProfile() {
+            window.open("https://x.com/intent/follow?screen_name=" + X_TARGET_USERNAME, "_blank");
+        }
 
         function handleTaskX() {
             const acc = getUnifiedAccount();
-            if (!acc || !acc.x || !acc.x.claimed) {
-                loginWithX();
-            } else {
-                window.open("https://x.com/intent/follow?screen_name=" + X_TARGET_USERNAME, "_blank");
+            if (acc?.x?.claimed) {
+                openXProfile();
+                return;
+            }
+
+            // Step 1: Open official X profile for user to follow
+            openXProfile();
+
+            // Step 2: Switch button to Verify Follow ⚡
+            sessionStorage.setItem("ns_x_opened", "1");
+            localStorage.setItem("ns_x_opened", "1");
+
+            const xBtnEl = document.getElementById("popoverXBtn");
+            const xStatusEl = document.getElementById("popoverXStatus");
+            if (xBtnEl) {
+                xBtnEl.textContent = "Verify Follow ⚡";
+                xBtnEl.onclick = loginWithX;
+            }
+            if (xStatusEl) {
+                xStatusEl.textContent = "Tap Verify after following";
             }
         }
 
@@ -1785,6 +1859,7 @@
 
             // Switch button to Verify ⚡
             sessionStorage.setItem("ns_discord_invite_opened", "1");
+            localStorage.setItem("ns_discord_invite_opened", "1");
             const discordBtnEl = document.getElementById("popoverDiscordBtn");
             const discordStatusEl = document.getElementById("popoverDiscordStatus");
             if (discordBtnEl) {
@@ -1799,6 +1874,7 @@
         function authorizeDiscord() {
             const state = "discord_" + xRandomBytes(16);
             sessionStorage.setItem("ns_discord_state", state);
+            localStorage.setItem("ns_discord_state", state);
 
             const params = new URLSearchParams({
                 client_id: DISCORD_CLIENT_ID,
@@ -1812,11 +1888,12 @@
         }
 
         async function handleDiscordCallback(code, returnedState) {
-            const savedState = sessionStorage.getItem("ns_discord_state");
+            const savedState = localStorage.getItem("ns_discord_state") || sessionStorage.getItem("ns_discord_state");
             if (!savedState || savedState !== returnedState) {
                 throw new Error("Discord login session expired or state mismatch.");
             }
             sessionStorage.removeItem("ns_discord_state");
+            localStorage.removeItem("ns_discord_state");
 
             const acc = getUnifiedAccount();
             const currentAccountId = acc ? (acc.id || acc.accountId) : null;
@@ -1838,6 +1915,7 @@
 
             if (data.success && data.account) {
                 sessionStorage.removeItem("ns_discord_invite_opened");
+                localStorage.removeItem("ns_discord_invite_opened");
                 setUnifiedAccount(data.account);
                 updateXPointsUI();
                 toggleXPopover(true);
@@ -1846,6 +1924,7 @@
                 }
             } else if (data.member === false) {
                 sessionStorage.setItem("ns_discord_invite_opened", "1");
+                localStorage.setItem("ns_discord_invite_opened", "1");
                 updateXPointsUI();
                 toggleXPopover(true);
                 if (typeof notify === "function") {
@@ -1888,19 +1967,40 @@
                 if (uEl) uEl.textContent = displayName;
                 if (pEl) pEl.textContent = totalPoints;
 
-                // Render X Task Row
+                // Render X Task Row (2-step state awareness)
                 const xDone = acc?.x?.claimed;
+                const xOpened = sessionStorage.getItem("ns_x_opened") === "1" || localStorage.getItem("ns_x_opened") === "1";
                 const xStatusEl = document.getElementById("popoverXStatus");
                 const xBtnEl = document.getElementById("popoverXBtn");
                 if (xStatusEl) {
-                    xStatusEl.textContent = xDone ? ("✓ @" + acc.x.username + " (+100 Pts)") : "+100 Points";
-                    xStatusEl.className = "x-task-status" + (xDone ? " completed" : "");
+                    if (xDone) {
+                        xStatusEl.textContent = "✓ @" + acc.x.username + " (+100 Pts)";
+                        xStatusEl.className = "x-task-status completed";
+                    } else if (xOpened) {
+                        xStatusEl.textContent = "Tap Verify after following";
+                        xStatusEl.className = "x-task-status";
+                    } else {
+                        xStatusEl.textContent = "+100 Points";
+                        xStatusEl.className = "x-task-status";
+                    }
                 }
                 if (xBtnEl) {
-                    xBtnEl.textContent = xDone ? "✓ Done" : "Follow";
-                    xBtnEl.className = "x-task-action-btn" + (xDone ? " done" : "");
-                    xBtnEl.disabled = !!xDone;
-                    xBtnEl.onclick = xDone ? null : handleTaskX;
+                    if (xDone) {
+                        xBtnEl.textContent = "✓ Done";
+                        xBtnEl.className = "x-task-action-btn done";
+                        xBtnEl.disabled = true;
+                        xBtnEl.onclick = null;
+                    } else if (xOpened) {
+                        xBtnEl.textContent = "Verify Follow ⚡";
+                        xBtnEl.className = "x-task-action-btn";
+                        xBtnEl.disabled = false;
+                        xBtnEl.onclick = loginWithX;
+                    } else {
+                        xBtnEl.textContent = "Follow";
+                        xBtnEl.className = "x-task-action-btn";
+                        xBtnEl.disabled = false;
+                        xBtnEl.onclick = handleTaskX;
+                    }
                 }
 
                 // Render Telegram Task Row
@@ -1909,7 +2009,7 @@
                 const tgBtnEl = document.getElementById("popoverTGBtn");
                 if (tgStatusEl) {
                     tgStatusEl.textContent = tgDone ? ("✓ @" + acc.telegram.username + " (+100 Pts)") : "+100 Points";
-                    tgStatusEl.className = "x-task-status" + (tgDone ? " completed" : "");
+                    tgStatusEl.className = "x-task-status completed";
                 }
                 if (tgBtnEl) {
                     tgBtnEl.textContent = tgDone ? "✓ Done" : "Join";
@@ -1918,9 +2018,9 @@
                     tgBtnEl.onclick = tgDone ? null : handleTaskTG;
                 }
 
-                // Render Discord Task Row
+                // Render Discord Task Row (2-step state awareness)
                 const discordDone = acc?.discord?.claimed;
-                const discordInviteOpened = sessionStorage.getItem("ns_discord_invite_opened") === "1";
+                const discordInviteOpened = sessionStorage.getItem("ns_discord_invite_opened") === "1" || localStorage.getItem("ns_discord_invite_opened") === "1";
                 const discordStatusEl = document.getElementById("popoverDiscordStatus");
                 const discordBtnEl = document.getElementById("popoverDiscordBtn");
 
@@ -2008,9 +2108,17 @@
             sessionStorage.removeItem("ranchimall_account");
             localStorage.removeItem("ranchimall_account");
             sessionStorage.removeItem("ranchimall_x_user");
+            localStorage.removeItem("ranchimall_x_user");
             sessionStorage.removeItem("ranchimall_x_access_token");
+            localStorage.removeItem("ranchimall_x_access_token");
             sessionStorage.removeItem("ranchimall_x_pkce");
+            localStorage.removeItem("ranchimall_x_pkce");
             sessionStorage.removeItem("ns_discord_state");
+            localStorage.removeItem("ns_discord_state");
+            sessionStorage.removeItem("ns_x_opened");
+            localStorage.removeItem("ns_x_opened");
+            sessionStorage.removeItem("ns_discord_invite_opened");
+            localStorage.removeItem("ns_discord_invite_opened");
             updateXPointsUI();
             if (typeof notify === "function") {
                 notify("Signed out of rewards account.", "info");
