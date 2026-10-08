@@ -1444,7 +1444,7 @@
             });
 
             window.location.href =
-                "https://x.com/i/oauth2/authorize?" + params.toString();
+                "https://twitter.com/i/oauth2/authorize?" + params.toString();
         }
 
 
@@ -1615,12 +1615,15 @@
             // --------------------------------------------------------
 
             let unifiedAcc = null;
+            const acc = getUnifiedAccount();
+            const currentAccountId = acc ? (acc.id || acc.accountId) : null;
 
             try {
                 const claimResponse = await fetch(X_PROXY + "/claim-reward", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
+                        accountId: currentAccountId,
                         platform: "x",
                         user: {
                             id: me.id,
