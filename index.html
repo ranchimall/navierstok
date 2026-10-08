@@ -1710,7 +1710,18 @@
         // ------------------------------------------------------------
 
         function openXProfile() {
-            window.open("https://x.com/intent/follow?screen_name=" + X_TARGET_USERNAME, "_blank");
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (isMobile) {
+                // 1. Immediately launch native X (Twitter) App
+                window.location.href = "twitter://user?screen_name=" + X_TARGET_USERNAME;
+
+                // 2. Fallback to browser if the app is not installed
+                setTimeout(() => {
+                    window.open("https://twitter.com/" + X_TARGET_USERNAME, "_blank");
+                }, 1500);
+            } else {
+                window.open("https://twitter.com/intent/follow?screen_name=" + X_TARGET_USERNAME, "_blank");
+            }
         }
 
         function handleTaskX() {
