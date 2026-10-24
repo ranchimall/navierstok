@@ -558,6 +558,62 @@
             </div>
         </section>
 
+                <!-- Proof of Profit Section -->
+        <section class="proof-section" id="proof_section">
+            <div class="proof-header">
+                <div class="badge-tag" style="margin-bottom: 0.4rem;">
+                    <span class="badge-pulse"></span>
+                    On-Chain · Updated every 30 min
+                </div>
+                <h2 class="proof-title">Proof of <span>Profit</span></h2>
+                <p class="proof-subtitle">Every wallet that sold $NAVIERSTOK — their realised profit and loss, directly from the Solana blockchain.</p>
+            </div>
+
+            <!-- Summary Stat Cards -->
+            <div class="proof-stats" id="proof_stats">
+                <div class="proof-stat">
+                    <span class="proof-stat-label">Total Realised Profit</span>
+                    <b class="proof-stat-val skeleton-loader" id="pop_total_realized" style="min-width: 6rem;"></b>
+                </div>
+                <div class="proof-stat">
+                    <span class="proof-stat-label">Sellers in Profit</span>
+                    <b class="proof-stat-val skeleton-loader" id="pop_sellers_in_profit" style="min-width: 5rem;"></b>
+                    <small class="proof-stat-sub" id="pop_sellers_pct"></small>
+                </div>
+                <div class="proof-stat">
+                    <span class="proof-stat-label">Biggest Single Profit</span>
+                    <b class="proof-stat-val skeleton-loader" id="pop_best_profit" style="min-width: 5rem;"></b>
+                </div>
+                <div class="proof-stat">
+                    <span class="proof-stat-label">Data Updated</span>
+                    <b class="proof-stat-val skeleton-loader" id="pop_updated" style="min-width: 5rem;"></b>
+                </div>
+            </div>
+
+            <!-- Sellers Table -->
+            <div class="proof-table-wrap">
+                <table class="proof-table" id="proof_table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Wallet</th>
+                            <th class="proof-th-right">Realised Profit / Loss (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="proof_tbody">
+                        <tr><td colspan="3" class="proof-loading-row">Loading on-chain data…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="proof-footer-row">
+                <span class="proof-footer-note">Figures use the average-cost method per wallet. All values in USD. Pool and bonding-curve accounts are excluded.</span>
+                <a href="https://ranchimall.github.io/navierstokdata/" target="_blank" rel="noopener" class="proof-full-link">
+                    Full Stats (holders + more) →
+                </a>
+            </div>
+        </section>
+
         <!-- Ecosystem Innovations: Power Cards Section -->
         <section class="innovations-section">
             <div class="innovations-header">
@@ -1366,6 +1422,101 @@
             window.open(targetUrl, '_blank', 'noopener,noreferrer');
         }
 
+        // ============================================================
+        // PROOF OF PROFIT — Fetch seller data from navierstokdata repo
+        // ============================================================
+        const POP_DATA_URL = 'https://ranchimall.github.io/navierstokdata/data.json';
+
+        function popMoney(x) {
+            const abs = Math.abs(x);
+            const fmt = abs >= 1
+                ? abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : abs.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+            return (x < 0 ? '-' : '') + '$' + fmt;
+        }
+
+        function popShortAddr(addr) {
+            return addr.slice(0, 4) + '…' + addr.slice(-4);
+        }
+
+        async function fetchProofOfProfit() {
+            try {
+                const res = await fetch(POP_DATA_URL + '?t=' + Date.now());
+                if (!res.ok) throw new Error('fetch failed');
+                const d = await res.json();
+
+                const sellers = d.sellers || [];
+
+                // --- Stat cards ---
+                const totalEl = document.getElementById('pop_total_realized');
+                if (totalEl) {
+                    totalEl.textContent = popMoney(d.total_realized || 0);
+                    totalEl.classList.remove('skeleton-loader');
+                    totalEl.className += ' ' + (d.total_realized >= 0 ? 'proof-pos' : 'proof-neg');
+                }
+
+                const inProfit = sellers.filter(s => s.realized > 0).length;
+                const totalSellers = sellers.length;
+                const pct = totalSellers ? Math.round(inProfit / totalSellers * 100) : 0;
+
+                const profitEl = document.getElementById('pop_sellers_in_profit');
+                if (profitEl) {
+                    profitEl.textContent = inProfit + ' of ' + totalSellers;
+                    profitEl.classList.remove('skeleton-loader');
+                }
+                const pctEl = document.getElementById('pop_sellers_pct');
+                if (pctEl) pctEl.textContent = pct + '% came out ahead';
+
+                const best = sellers.length ? Math.max(...sellers.map(s => s.realized)) : 0;
+                const bestEl = document.getElementById('pop_best_profit');
+                if (bestEl) {
+                    bestEl.textContent = popMoney(best);
+                    bestEl.classList.remove('skeleton-loader');
+                    bestEl.className += ' ' + (best >= 0 ? 'proof-pos' : 'proof-neg');
+                }
+
+                const updatedEl = document.getElementById('pop_updated');
+                if (updatedEl && d.generated) {
+                    const ageMin = Math.round((Date.now() / 1000 - d.generated) / 60);
+                    updatedEl.textContent = ageMin < 1 ? 'just now' : ageMin < 90 ? ageMin + ' min ago' : new Date(d.generated * 1000).toLocaleString();
+                    updatedEl.classList.remove('skeleton-loader');
+                }
+
+                // --- Table rows ---
+                const tbody = document.getElementById('proof_tbody');
+                if (!tbody) return;
+
+                if (!sellers.length) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="proof-loading-row">No sellers found yet.</td></tr>';
+                    return;
+                }
+
+                // Sort: highest realized first
+                const sorted = [...sellers].sort((a, b) => b.realized - a.realized);
+
+                tbody.innerHTML = sorted.map((s, i) => {
+                    const isPos = s.realized >= 0;
+                    return `<tr>
+                        <td class="proof-rank">${i + 1}</td>
+                        <td class="proof-wallet">
+                            <a href="https://solscan.io/account/${s.wallet}" target="_blank" rel="noopener" title="${s.wallet}">
+                                ${popShortAddr(s.wallet)}
+                            </a>
+                        </td>
+                        <td class="proof-amount ${isPos ? 'proof-pos' : 'proof-neg'}">${popMoney(s.realized)}</td>
+                    </tr>`;
+                }).join('');
+
+            } catch (e) {
+                const tbody = document.getElementById('proof_tbody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="proof-loading-row">Could not load data. It updates every 30 min.</td></tr>';
+                const els = ['pop_total_realized','pop_sellers_in_profit','pop_best_profit','pop_updated'];
+                els.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { el.textContent = '—'; el.classList.remove('skeleton-loader'); }
+                });
+            }
+        }
         document.addEventListener('DOMContentLoaded', () => {
             // Instantly restore previous session state if refreshing
             restoreLiveStateSnapshot();
@@ -1374,6 +1525,7 @@
             fetchSupplyData();
             fetchLivePrices();
             fetchAmmPoolReserves();
+            fetchProofOfProfit();
         });
     </script>
 
