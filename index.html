@@ -999,12 +999,13 @@
 
         // Price and Swap State
         const priceState = {
-            navierstokPriceInTsmx: 0.000001033, // Default fallback from PumpSwap AMM pair
-            tsmxPriceInUsd: 497.79,             // Live TSMC xStock price
+            navierstokPriceInTsmx: 0.000001202, // Default fallback from PumpSwap AMM pair
+            tsmxPriceInUsd: 424.40,             // Live TSMC xStock price
             solPriceInUsd: 115.90,              // Live Solana price
             priceChange24h: 13.31,              // 24h % change
             currentSpendCurrency: 'SOL',
-            dexscreenerFetched: false
+            livePriceFetched: false,
+            liveMarketCapUsd: null
         };
 
         // Save current live state snapshot
@@ -1174,7 +1175,7 @@
                 // If live on-chain balances are available, derive real-time spot price fallback
                 if (liveNavier && liveTsmx && liveNavier > 0) {
                     const spotRate = liveTsmx / liveNavier;
-                    if (!isNaN(spotRate) && spotRate > 0 && !priceState.dexscreenerFetched) {
+                    if (!isNaN(spotRate) && spotRate > 0 && !priceState.livePriceFetched) {
                         priceState.navierstokPriceInTsmx = spotRate;
                         updateHeroPriceDisplay();
                         updateCalculations();
@@ -1202,8 +1203,8 @@
                 priceEl.classList.add('fade-in-data');
             }
 
-            if (mcapEl && navierstokUsd > 0) {
-                const totalMcap = navierstokUsd * 1000000000;
+            const totalMcap = priceState.liveMarketCapUsd || (navierstokUsd > 0 ? navierstokUsd * 1000000000 : 0);
+            if (mcapEl && totalMcap > 0) {
                 if (totalMcap >= 1000000) {
                     mcapEl.textContent = '$' + (totalMcap / 1000000).toFixed(2) + 'M';
                 } else if (totalMcap >= 1000) {
@@ -1227,30 +1228,28 @@
             saveLiveStateSnapshot();
         }
 
-        // Fetch Live Prices from DexScreener & CoinGecko
+        const WORKER_PRICE_API = 'https://navierstokprice.ranchimallfze.workers.dev/';
+
+        // Fetch Live Prices from Cloudflare Worker & CoinGecko
         async function fetchLivePrices() {
             try {
-                // 1. Fetch NAVIERSTOK / TSMx PumpSwap pair from DexScreener
-                const navierRes = await fetch('https://api.dexscreener.com/latest/dex/pairs/solana/AkyigaXhnBCKWupybbphq5VeUg1H2RNHnbLgj5zoyj7t');
-                if (navierRes.ok) {
-                    const data = await navierRes.json();
-                    const pair = data.pair || (data.pairs && data.pairs[0]);
-                    if (pair) {
-                        const priceNative = parseFloat(pair.priceNative);
-                        if (!isNaN(priceNative) && priceNative > 0) {
-                            priceState.navierstokPriceInTsmx = priceNative;
-                            priceState.dexscreenerFetched = true;
-                        }
-                        if (pair.priceChange && typeof pair.priceChange.h24 !== 'undefined') {
-                            const change24 = parseFloat(pair.priceChange.h24);
-                            if (!isNaN(change24)) {
-                                priceState.priceChange24h = change24;
-                            }
-                        }
+                // 1. Fetch live NAVIERSTOK & TSMx market data from Cloudflare Worker (Pump.fun)
+                const marketRes = await fetch(WORKER_PRICE_API);
+                if (marketRes.ok) {
+                    const data = await marketRes.json();
+                    if (data.navierstokPriceInTsmx > 0) {
+                        priceState.navierstokPriceInTsmx = data.navierstokPriceInTsmx;
                     }
+                    if (data.tsmxPriceUsd > 0) {
+                        priceState.tsmxPriceInUsd = data.tsmxPriceUsd;
+                    }
+                    if (data.marketCapUsd > 0) {
+                        priceState.liveMarketCapUsd = data.marketCapUsd;
+                    }
+                    priceState.livePriceFetched = true;
                 }
             } catch (err) {
-                console.warn('DexScreener NAVIERSTOK pair price fallback used', err);
+                console.warn('Worker price fetch fallback used:', err);
             }
 
             try {
