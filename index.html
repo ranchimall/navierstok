@@ -1246,6 +1246,9 @@
                     if (data.marketCapUsd > 0) {
                         priceState.liveMarketCapUsd = data.marketCapUsd;
                     }
+                    if (typeof data.priceChange24h === 'number') {
+                        priceState.priceChange24h = data.priceChange24h;
+                    }
                     priceState.livePriceFetched = true;
                 }
             } catch (err) {
